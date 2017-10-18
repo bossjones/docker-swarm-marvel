@@ -1,0 +1,13 @@
+---
+- hosts: latveria
+# - hosts: swarm
+# - hosts: swarm_manager
+
+  tasks:
+
+    - name: who
+      remote_user: root
+      shell: who
+      become: yes
+      become_method: sudo
+

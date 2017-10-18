@@ -1,0 +1,55 @@
+# setup_python.yml
+---
+
+- name: Install virtualenv and virtualenvwrapper
+  become: yes
+  become_method: sudo
+  pip: name={{ item }}
+       executable=pip3
+       state=present
+  with_items:
+  - virtualenv
+  - virtualenvwrapper
+  - ipython
+  - httpstat
+  - cheat
+  - psutil
+
+# pip install --ignore-installed --pre "https://github.com/pradyunsg/pip/archive/hotfix/9.0.2.zip#egg=pip" \
+#     && pip install --upgrade setuptools==36.0.1 wheel==0.29.0 \
+
+- name: "install glances system wide"
+  shell: |
+    pip3 install --ignore-installed --pre "https://github.com/pradyunsg/pip/archive/hotfix/9.0.2.zip#egg=pip"
+    pip3 install --upgrade setuptools==36.0.1 wheel==0.29.0
+    pip install --ignore-installed --pre "https://github.com/pradyunsg/pip/archive/hotfix/9.0.2.zip#egg=pip"
+    pip install --upgrade setuptools==36.0.1 wheel==0.29.0
+  become: yes
+  become_method: sudo
+  args:
+    executable: /bin/bash
+
+# - name: install numpy
+#   pip: name=numpy
+#        state=present
+#        executable=pip3
+
+- name: configure pythonrc
+  template: src="home/{{base_vars.USER}}/pythonrc.j2"
+            dest="/home/{{base_vars.USER}}/.pythonrc"
+            owner="{{base_vars.USER}}"
+            group="{{base_vars.USER}}"
+            mode=0644
+            backup=yes
+  tags:
+  - pythonrc
+  - configuration
+
+
+- name: "install glances system wide"
+  shell: |
+    bash -lc "wget -O- https://bit.ly/glances | /bin/bash"
+  become: yes
+  become_method: sudo
+  args:
+    executable: /bin/bash

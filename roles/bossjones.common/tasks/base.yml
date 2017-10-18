@@ -1,0 +1,27 @@
+---
+
+# (HACK): Some linux distributions didn't provide a default .bashrc.
+- name: ensure $HOME/.bashrc is present
+  command: touch {{user_home}}/.bashrc
+
+- name: configure bash_profile
+  template: src="home/{{base_vars.USER}}/bash_profile.j2"
+            dest="/home/{{base_vars.USER}}/.bash_profile"
+            owner="{{base_vars.USER}}"
+            group="{{base_vars.USER}}"
+            mode=0644
+            backup=yes
+  tags:
+  - bash_profile
+  - configuration
+
+- name: configure bashrc
+  template: src="home/{{base_vars.USER}}/bashrc.j2"
+            dest="/home/{{base_vars.USER}}/.bashrc"
+            owner="{{base_vars.USER}}"
+            group="{{base_vars.USER}}"
+            mode=0644
+            backup=yes
+  tags:
+  - bashrc
+  - configuration

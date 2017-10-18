@@ -1,0 +1,214 @@
+---
+firewall_allowed_tcp_ports:
+  - "22"
+
+docker_selinux: disabled
+
+fail2ban_jails: [sshd, postfix, dovecot]
+
+
+swarm_ansible_user: pi
+
+
+groups_to_create:
+  - name: pi
+    gid: 1000
+users:
+  - name: pi
+    username: pi
+    uid: 1000
+    groups: [wheel, systemd-journal, adm]
+    shell: /bin/bash
+    profile: |
+      alias ll='ls -lah'
+      alias cp='cp -iv'
+    ssh_key:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC57AES/o+f1Vwe8CCS99Ts2BHbwSVlFu9WZf0ehi2rAVMoXET0Mot2uc4QD82LpBh7QmZrBnBIvLCvjmmhU+BoJ+kDhBvrTFv55+JoRNcxQusjomAB6Sd12xIudj9n/GEGda3ArHNRyS67C2jFYKn9EuvYZxOUWafZ9SVaH+UHXcpmCVqy5ZdO5l1AQdTdxTlywZW44HJZ5bV9+ku3bDRIO3Gv73zzApf6sSkr7bRrxa9sGTdfVcVN44uw0b7Ri2kJnd8WEkUUmtVazY4GDq4syz6ISUmvupEcR5uZEmbRQ06ETbbT46hUdzEdDmwqvQixWfRIZOQkqCNXTTaM1U05 malcolmjones@Malcolms-iMac.local"
+
+base_vars:
+  PYTHON_VERSION_MAJOR: '3'
+  PYTHON_VERSION: '3.5'
+  GSTREAMER: '1.0'
+  USER: 'pi'
+  USER_HOME: '/home/pi'
+
+virtualenv_vars:
+  DEV_DIR: "{{ base_vars.USER_HOME }}/dev"
+  VIRT_ROOT: "{{ base_vars.USER_HOME }}/.virtualenvs"
+  WORKON_HOME: "{{ base_vars.USER_HOME }}/.virtualenvs"
+  PROJECT_HOME: "{{ base_vars.USER_HOME }}/dev"
+  VIRTUALENVWRAPPER_PYTHON: "/usr/bin/python3"
+  VIRTUALENVWRAPPER_VIRTUALENV: "/usr/bin/virtualenv"
+  VIRTUALENVWRAPPER_SCRIPT: "/usr/bin/virtualenvwrapper.sh"
+  PYTHONSTARTUP: "$HOME/.pythonrc"
+  PIP_DOWNLOAD_CACHE: "$HOME/.pip/cache"
+
+
+rbenv:
+  env: user
+  version: v1.1.0
+  default_ruby: 2.2.3
+  rubies:
+  - version: 2.2.3
+    # env:
+    #   RUBY_CONFIGURE_OPTS: "--enable-shared"
+powerline_default_top_theme: powerline
+powerline_shell_vcs_branch: yes
+powerline_users:
+  - pi
+
+rbenv_users:
+  - pi
+
+rbenv_repo: "https://github.com/rbenv/rbenv.git"
+
+
+# extra_vars:
+#   rbenv:
+#     env: system
+#     version: v0.4.0
+#     default_ruby: 2.1.2
+#     rubies:
+#       - version: 2.1.2
+
+# rbenv_root: "~/.rbenv"
+
+rbenv_plugins:
+  - { name: "rbenv-vars",         repo: "https://github.com/rbenv/rbenv-vars.git",         version: "v1.2.0" }
+  - { name: "ruby-build",         repo: "https://github.com/rbenv/ruby-build.git",         version: "master" }
+  - { name: "rbenv-default-gems", repo: "https://github.com/rbenv/rbenv-default-gems.git", version: "ead67889c91c53ad967f85f5a89d986fdb98f6fb" }
+  - { name: "rbenv-installer",    repo: "https://github.com/rbenv/rbenv-installer.git",    version: "bc21e7055dcc8f5f9bc66ce0c78cc9ae0c28cd7a" }
+  - { name: "rbenv-update",       repo: "https://github.com/rkh/rbenv-update.git",         version: "1961fa180280bb50b64cbbffe6a5df7cf70f5e50" }
+  - { name: "rbenv-whatis",       repo: "https://github.com/rkh/rbenv-whatis.git",         version: "v1.0.0" }
+  - { name: "rbenv-use",          repo: "https://github.com/rkh/rbenv-use.git",            version: "v1.0.0" }
+
+rbenv_root: "{% if rbenv.env == 'system' %}/usr/local/rbenv{% else %}~/.rbenv{% endif %}"
+
+nvm_repo: "git://github.com/creationix/nvm.git"
+nvm_root: "{{ base_vars.USER_HOME }}/.nvm"
+nvm_env: user
+nvm_version: v0.33.1
+nvm_default_node_version: stable
+nvm_node_versions:
+  - stable
+nvm_global_packages:
+  - vtop
+  - whereami
+  - figlet-cli
+  - get-port-cli
+  - getmac
+  - mediumcli
+  - speed-test
+  - spoof
+  - tldr
+  - wireless-tools
+  - yaml-lint
+  - pathogen-pm
+  - manga-scraper
+nvm_users:
+  - "{{ base_vars.USER }}"
+
+# net.core.somaxconn=65535
+# net.ipv4.ip_local_port_range=10240  63999
+# net.ipv4.tcp_tw_recycle=0
+# net.ipv4.tcp_tw_reuse=1
+# net.ipv4.tcp_max_syn_backlog=65535
+# net.ipv4.tcp_max_tw_buckets=1440000
+# net.ipv4.tcp_window_scaling=1
+# net.ipv4.tcp_congestion_control=htcp
+# net.core.netdev_max_backlog=250000
+# net.ipv4.tcp_mtu_probing=1
+# net.ipv4.tcp_slow_start_after_idle=0
+# fs.file-max=6511048
+# net.netfilter.nf_conntrack_max=262144
+# net.ipv4.tcp_max_syn_backlog=4096
+
+
+# array=( net.core.somaxconn net.ipv4.ip_local_port_range net.ipv4.tcp_tw_recycle net.ipv4.tcp_tw_reuse net.ipv4.tcp_max_syn_backlog net.ipv4.tcp_max_tw_buckets net.ipv4.tcp_window_scaling net.ipv4.tcp_congestion_control net.core.netdev_max_backlog net.ipv4.tcp_mtu_probing net.ipv4.tcp_slow_start_after_idle fs.file-max net.netfilter.nf_conntrack_max net.ipv4.tcp_max_syn_backlog )
+
+# for i in "${array[@]}"; do ./goss add kernel-param $i;  done
+
+
+# -----------------------
+#
+# ./goss add file /etc/sysctl.d/ker_optimizations.conf
+
+
+# ip-10-74-185-28 ~ # cat /etc/modules-load.d/nf.conf
+# nf_conntrack
+
+# ip-10-74-185-28 ~ # cat /etc/sysctl.d/ker_optimizations.conf
+# net.core.somaxconn=65535
+# net.ipv4.ip_local_port_range=10240  63999
+# net.ipv4.tcp_tw_recycle=0
+# net.ipv4.tcp_tw_reuse=1
+# net.ipv4.tcp_max_syn_backlog=65535
+# net.ipv4.tcp_max_tw_buckets=1440000
+# net.ipv4.tcp_window_scaling=1
+# net.ipv4.tcp_congestion_control=htcp
+# net.core.netdev_max_backlog=250000
+# net.ipv4.tcp_mtu_probing=1
+# net.ipv4.tcp_slow_start_after_idle=0
+# fs.file-max=6511048
+# net.netfilter.nf_conntrack_max=262144
+# net.ipv4.tcp_max_syn_backlog=4096
+
+# ip-10-74-185-28 ~ # cat /etc/systemd/system/systemd-journald.service.d/local.conf
+# # WARNING - this file was automatically created on boot
+# # some of these values may not be accurate relative to etcd!
+# [Service]
+# WatchdogSec=3min
+# ip-10-74-185-28 ~ #
+
+
+# ip-10-74-185-28 docker.service.d # cat 10-wait-docker.conf
+# [Unit]
+# After=format-docker.service
+# Requires=format-docker.service
+
+# ip-10-74-185-28 docker.service.d # cat 20-dm-storage.conf
+# [Service]
+# Environment="DOCKER_OPTS=--log-driver=json-file --log-opt max-file=10 --log-opt max-size=10m --disable-legacy-registry"
+
+# ip-10-74-185-28 docker.service.d # cat increase-ulimit.conf
+# # WARNING - this file was automatically created on boot
+# # some of these values may not be accurate relative to etcd!
+# [Service]
+# LimitMEMLOCK=infinity
+# LimitNOFILE=1048576
+# LimitNPROC=1048576
+# LimitCORE=infinity
+
+# ip-10-74-185-28 docker.service.d # pwd
+# /etc/systemd/system/docker.service.d
+# ip-10-74-185-28 docker.service.d #
+
+
+# "    - name: systemd-modules-load.service\n",
+# "      command: restart\n",
+# "    - name: systemd-sysctl.service\n",
+# "      command: restart\n",
+#
+
+
+# # The driftfile
+# ntp_driftfile: /var/lib/ntp/drifta
+
+# # The server to sync time with
+# ntp_server: [0.ubuntu.pool.ntp.org, 1.ubuntu.pool.ntp.org]
+
+# ntp_restrict:
+#   - "restrict -4 default kod notrap nomodify nopeer noquery"
+#   - "restrict -6 default kod notrap nomodify nopeer noquery"
+#   - "restrict 127.0.0.1"
+
+# ntp_crypto: no
+# ntp_includefile: no
+# ntp_keys: no
+# ntp_trustedkey: no
+# ntp_requestkey: no
+# ntp_controlkey: no
+# ntp_statistics: no
+# ntp_broadcast: no
+# ntp_broadcastclient: no
+# ntp_multicastclient: no

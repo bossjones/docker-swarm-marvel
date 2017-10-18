@@ -1,0 +1,16 @@
+---
+base_vars:
+  PYTHON_VERSION_MAJOR: '3'
+  PYTHON_VERSION: '3.5'
+  USER: 'pi'
+  USER_HOME: '/home/pi'
+  GITHUB_BRANCH: "master"
+
+
+tmux_powerline: yes
+tmux_mouse_mode: yes
+tmux_vi_mode: yes
+tmux_plugins:
+  - "tmux-plugins/tmux-sensible"
+tmux_users:
+  - pi

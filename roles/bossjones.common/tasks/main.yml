@@ -1,0 +1,34 @@
+---
+
+- include: dnf.yml
+  when: ansible_pkg_mgr == 'dnf'
+
+- name: install kernel settings
+  include: kern.yml
+
+- name: install python3 stuff
+  include: python.yml
+
+- name: install rbenv stuff
+  include: rbenv.yml
+
+- name: install nvm stuff
+  include: nvm.yml
+
+- name: install tmux stuff
+  include: tmux.yml
+
+- name: install vimrc stuff
+  include: vimrc.yml
+
+- name: install bash_it stuff
+  include: bash_it.yml
+
+- name: install shell stuff
+  include: shell.yml
+
+- name: install dotfiles stuff
+  include: dotfiles.yml
+
+- set_fact:
+    role_basic_done: true

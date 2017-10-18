@@ -1,0 +1,106 @@
+---
+- name: Copy firewall script into place.
+  template:
+    src: firewall.bash.j2
+    dest: /etc/firewall.bash
+    owner: root
+    group: root
+    mode: 0744
+  # notify: restart firewall
+  tags:
+  - firewalld
+
+- name: Install firewalld
+  package: name=firewalld state=present
+  tags:
+  - firewalld
+
+- name: Ensure firewalld is started and enabled at boot.
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+  tags:
+  - firewalld
+
+# NOTE: This playbook *adds* rules.
+# It does not delete existing rules.
+
+# Strategy:
+# Make public the default policy.
+- name: Set public as default policy
+  command: firewall-cmd --set-default-zone=public
+
+# https://github.com/ansible/ansible-modules-extras/issues/1282
+- name: Install Ansible Python 2 Dependencies
+  with_items:
+  - python-firewall
+  dnf:
+    name: "{{item}}"
+    state: present
+
+# fatal: [default]: FAILED! => {"changed": false, "failed": true, "msg": "can only operate on port, service, rich_rule or interface at once"}
+
+- name: disable global port 22
+  firewalld:
+    port: 22/tcp
+    # service: ssh
+    zone: public
+    permanent: true
+    state: disabled
+  tags:
+  - firewalld
+
+- name: disable global service ssh
+  firewalld:
+    # port: 22/tcp
+    service: ssh
+    zone: public
+    permanent: true
+    state: disabled
+  tags:
+  - firewalld
+
+
+# add drop rule for ipv6
+# ::/0 — The default route address (corresponding to 0.0.0.0/0 in IPv4) covering all addresses (unicast, multicast and others).
+- name: add drop rule for ipv6
+  firewalld:
+    rich_rule: "rule service name='ssh' family='ipv6' source address='::/0' log prefix='ssh' level='info' limit value='1/m' drop"
+    permanent: true
+    state: enabled
+    # service: ssh
+    zone: block
+  tags:
+  - firewalld
+
+# remove any global ACCEPTS to ssh
+- name: remove any global ACCEPTS to ssh
+  firewalld:
+    rich_rule: "rule service name='ssh' family='ipv4' source address='0.0.0.0/0' log prefix='ssh' level='info' limit value='1/m' drop"
+    permanent: true
+    zone: public
+    # service: ssh
+    state: disabled
+  tags:
+  - firewalld
+
+# add rich rule for everyip in list
+- name: add rich rule for everyip in list
+  firewalld:
+    rich_rule: "rule service name='ssh' family='ipv4' source address='{{item}}' log prefix='ssh' level='info' limit value='1/m' accept"
+    permanent: true
+    state: enabled
+    zone: public
+    # service: ssh
+  with_items: "{{firewalld_ssh_ip_address_range}}"
+  tags:
+  - firewalld
+
+- name: reloaded firewalld
+  command: echo 'reloaded firewalld'
+  notify: firewalld | policy | reloaded
+
+- name: restarting firewalld
+  command: echo 'restarting firewalld'
+  notify: restart firewalld

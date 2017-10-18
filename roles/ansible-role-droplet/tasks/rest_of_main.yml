@@ -1,0 +1,74 @@
+---
+- debug:
+    msg: "ID is {{ droplet_id }}"
+  ignore_errors: yes
+
+- name: ensure ssh key exists
+  user:
+    name: "{{ ansible_user_id }}"
+    # This will not overwrite an existing SSH key.
+    generate_ssh_key: yes
+    # Relative to the user's home directory
+    ssh_key_file: .ssh/id_rsa
+  become: true
+
+- name: ensure key exists at DigitalOcean
+  digital_ocean:
+    state: present
+    command: ssh
+    name: my_ssh_key
+    ssh_pub_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+    api_token: "{{ DO_API_TOKEN }}"
+  register: my_ssh_key
+
+- name: ensure droplet exists
+  digital_ocean:
+    state: present
+    command: droplet
+    name: "{{ name }}"
+    # FIXME
+    unique_name: yes
+    id: "{{ droplet_id|default(omit) }}"
+    size_id: "{{ size_id|default('512mb') }}"
+    region_id: lon1
+    image_id: ubuntu-16-04-x64
+    ssh_key_ids: "{{ my_ssh_key.ssh_key.id }}"
+    api_token: "{{ DO_API_TOKEN }}"
+    wait_timeout: 500
+  register: droplet
+
+# ??? write to inventory
+- local_action:
+    module: blockinfile
+    create: yes
+    mode: 0666
+    path: "{{ playbook_dir }}/{{ inventory_to_update }}"
+    marker: "# {mark} {{ name }}"
+    content: |
+      [{{ droplet_groups }}]
+      {{ name }} ansible_host={{ droplet.droplet.ip_address }} droplet_id={{ droplet.droplet.id }} ansible_ssh_user=root ansible_ssh_private_key_file={{ '~/.ssh/id_rsa' | expanduser }} ansible_python_interpreter=/usr/bin/python3
+- debug:
+    msg: "IP is {{ droplet.droplet.ip_address }}"
+
+- local_action:
+    module: add_host
+    hostname: "{{ droplet.droplet.ip_address }}"
+    groups: "{{ droplet_groups }}"
+    ansible_ssh_user: root
+    ansible_ssh_private_key_file: "{{ '~/.ssh/id_rsa' | expanduser }}"
+    ansible_host: "{{ droplet.droplet.ip_address }}"
+    ansible_ssh_host: "{{ droplet.droplet.ip_address }}"
+    ansible_python_interpreter: python3
+
+# - local_action:
+#     module: gcdns_record
+#     credentials_file: nobreach-855249fcb65a.json
+#     record: "{{ name }}"
+#     zone: "nobreach.se"
+#     type: A
+#     overwrite: true
+#     record_data:
+#       - "{{ droplet.droplet.ip_address }}"
+
+
+

@@ -1,0 +1,55 @@
+# install_roles.yml
+bennojoy.ntp
+# https://galaxy.ansible.com/jorti/fail2ban/
+jorti.fail2ban
+ksylvan.docker
+juju4.ipv6
+# https://github.com/geerlingguy/ansible-role-java
+# 'java-1.7.0-openjdk'
+sleighzy.java-8
+# https://galaxy.ansible.com/bas-ansible-roles-collection/system-core/
+bas-ansible-roles-collection.system-core
+# https://galaxy.ansible.com/bas-ansible-roles-collection/system-ssh/
+bas-ansible-roles-collection.system-ssh
+
+# https://github.com/geerlingguy/ansible-role-redis
+# geerlingguy.redis
+
+# source: https://github.com/geerlingguy/ansible-role-raspberry-pi
+# geerlingguy.raspberry-pi
+
+# https://github.com/geerlingguy/ansible-role-postfix
+# geerlingguy.postfix
+
+# https://github.com/geerlingguy/ansible-role-nodejs
+# geerlingguy.nodejs
+
+# https://github.com/geerlingguy/ansible-role-dotfiles
+# geerlingguy.dotfiles
+
+# https://galaxy.ansible.com/zzet/rbenv/
+zzet.rbenv
+
+# https://galaxy.ansible.com/carlba/bash_aliases/
+carlba.bash_aliases
+
+# https://galaxy.ansible.com/joshualund/golang/
+joshualund.golang
+
+# https://galaxy.ansible.com/mjanser/powerline/
+mjanser.powerline
+
+pablocrivella.nvm
+
+# https://github.com/dev-sec/ansible-os-hardening
+dev-sec.os-hardening
+
+# https://github.com/dev-sec/ansible-ssh-hardening
+dev-sec.ssh-hardening
+
+# https://github.com/dev-sec/ansible-nginx-hardening
+dev-sec.nginx-hardening
+
+# source: https://galaxy.ansible.com/singleplatform-eng/users/
+# source: https://github.com/singleplatform-eng/ansible-users
+singleplatform-eng.users

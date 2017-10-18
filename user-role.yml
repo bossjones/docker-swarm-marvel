@@ -1,0 +1,42 @@
+---
+
+- hosts: latveria
+  become: yes
+  become_method: sudo
+  vars_files:
+    - vars/main.yml
+  roles:
+    - { role: singleplatform-eng.users }
+
+  pre_tasks:
+
+    - name: Fail if Ansible is ancient
+      fail: msg="We need Ansible >= 2.0. Please update your kit. 'pip install -U Ansible'"
+      when: ansible_version.major < 2
+      tags:
+        - always
+
+    - name: Include vars from local-configure.yml if found
+      include_vars: "{{ item }}"
+      with_first_found:
+       - local-configure.yml
+       - null.yml
+
+    - name: install some small, awesome packages to boost your life
+      dnf: name={{item}} state=present
+      with_items:
+        - python2
+        - ansible
+        - python2-dnf
+        - libselinux-python
+        - sudo
+
+  tasks:
+
+  post_tasks:
+      - name: Ensure the pi Ansible user has passwordless sudo
+        copy:
+          content: "{{ swarm_ansible_user }} ALL=(ALL) NOPASSWD: ALL"
+          dest: "/etc/sudoers.d/ansible-user"
+          mode: 0440
+        become: True

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# -d = detach
+# -n = window name
+tmux new-session -d -n 'irc' 'weechat-curses'
+tmux rename-session Tmux
+tmux split-window -h   'newsbeuter'
+tmux selectp -t 1
+tmux split-window -v   'ocp-curses'
+tmux selectp -t 2
+tmux split-window -v 'ayadn global --scroll'
+tmux selectp -t 0
+tmux split-window -v -p 25 '~/scripts/earthq.sh'
+tmux selectp -t 2
+tmux split-window -v -p 25 '~/stag3.sh'
+tmux split-window -h   '~/stag2.sh'
+tmux new-window -n 'Stat'  'saidar -c'
+tmux split-window -h  'htop'
+tmux selectp -t 1
+tmux split-window -v
+tmux selectp -t 2
+tmux clock-mode
+tmux split-window -v 'wego 1'
+tmux selectp -t 0
+tmux split-window -v -p 25  'journalctl -f -all |  ccze -A'
+tmux new-window -n 'Media' 'mpsyt'
+tmux split-window -h  -p 40  'livestreamer-curses'
+tmux selectp -t 1
+tmux split-window -v  -p 60  'pyradio'
+tmux selectp -t 2
+tmux split-window -v  '~/build/torrentflix/bin/torrentflix'
+tmux selectp -t 0
+tmux split-window -v -p 35    '~/scripts/subscow.sh'
+tmux split-window -h  -p 50  '~/scripts/pms.py .pink floyd'
+tmux split-window -v  -p 25
+tmux new-window -n 'FM'  'ranger'
+tmux split-window -h  'sr google'
+tmux selectp -t 0
+tmux split-window -v 'mc'
+tmux selectp -t 2
+tmux split-window -v  'mutt'
+tmux selectp -t 1
+tmux split-window -v
+tmux new-window -n 'SSH' 'ssh cirrus@192.168.1.33 -p 2236'
+tmux new-window -n 'OSSH'  'ssh cirrus@thebes.openshells.net'
+tmux selectw -t 1
+tmux selectp -t 1
+tmux -2 attach-session -t Tmux

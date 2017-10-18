@@ -1,0 +1,7 @@
+# source: https://github.com/serverspec/serverspec-integration-test/tree/6d5d04b302b09f7cc6268a945da135ef5283aa96
+#vagrant serverspec:
+
+hyena_org:
+  # tests to run - found in spec/
+  :roles:
+  - ipv6

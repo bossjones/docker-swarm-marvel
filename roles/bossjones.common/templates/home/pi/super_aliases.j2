@@ -1,0 +1,75 @@
+# source: https://gist.github.com/cirrusUK/35a7642f81097f4e5158#file-tmux-sh
+# tmux
+alias ta='tmux attach'
+alias tl='tmux ls'
+alias tmdt="tmux detach"
+
+# netstat
+alias nstat="netstat -p TCP -eWc"
+
+# fun
+alias ncmatrix="ncmatrix -I enp4s0 -R red -T yellow"
+alias recterm="echo -n Recording Terminal | pv -qL 10 && asciinema rec"
+# https://www.linux.com/learn/linux-tips-fun-figlet-and-toilet-commands
+# http://caca.zoy.org/wiki/toilet
+# http://www.figlet.org/
+
+# sysadmin
+alias kernelmsg="sudo journalctl -f _TRANSPORT=kernel | ccze"    #kernel messages
+alias ports='netstat -tulanp'
+alias bootmsg="echo -n Boot Messages | pv -qL 10 && sudo journalctl -b | ccze -A"  #boot messages
+alias systemdmsg="sudo journalctl /usr/lib/systemd/systemd | ccze -A"
+alias blame="systemd-analyze blame"
+alias boot="echo -n Boot Time | pv -qL 10 && systemd-analyze"
+alias units="echo -n Listing Units | pv -qL 10 && systemctl list-units"
+alias errors="echo -n Journal Errors | pv -qL 10 && journalctl -b -p err | ccze -A"
+alias meminfo='echo -n "RAM Information   " | pv -qL 10 &&free -m -l -t'         #freeRAM
+alias psmem='echo -n "Top Processes accesing RAM  " | pv -qL 10 && ps auxf | sort -nr -k 4'
+alias cpuinfo='lscpu | ccze -A'                 #CPU info
+alias pscpu='echo -n "Top Processes accesing CPU  " | pv -qL 10 && ps auxf | sort -nr -k 3'
+alias gpumeminfo='echo -n GPU RAM Information  | pv -qL 10 && cat /var/log/Xorg.0.log | ccze -A'
+alias killcli="echo -n Stopping CLI Processes | pv -qL 10 && sudo killall finch glances newsbeuter earthquake speedometer ocp pms pmsyt mpsyt weechat-curses ranger youtube-viewer & ~/scripts/killmpd.sh"
+
+# TERM=xterm-256color
+# BROWSER="${${DISPLAY+firefox}:-w3m}"
+
+
+# utility
+alias findit="sudo find / -name" #find files
+alias sshkeygen='echo -n "Generating SSH Key" | pv -qL 20 && ssh-keygen -t rsa -C nailzuk@gmail.com'
+alias top="vtop --theme cirrus"
+alias speeddown="echo -n Displaying Download Speed Graph| pv -qL 10 && speedometer -rx enp4s0"
+alias speedup="echo -n Displaying Upload Speed Graph | pv -qL 10 && speedometer -tx enp4s0"
+alias speedrw="echo -n Show R/W speeds | pv -qL 10 && dd bs=1000000 count=100 if=/dev/zero of=testfile & speedometer testfile"
+
+# web
+alias serve="cd /mnt/INT2/serve && echo -n localhost python server on port 8080 | python -m http.server 8080"
+alias i3guide="w3m http://i3wm.org/docs/userguide.html"
+alias wikip="wikipediaSearch"
+alias awiki="w3m https://wiki.archlinux.org/"
+
+# music
+alias mympd='echo -n "Localhost MPD Server    " | pv -qL 20 && mplayer http://localhost:8000'
+alias jukebox='echo -n "ncmpcpp via Rpi  Archlinux server" | pv -qL 20 && ncmpcpp -h 192.168.1.33'
+
+# more
+alias h='history'
+alias grep='grep --color=auto'
+alias mount='mount |column -t'
+alias ls='ls --color=auto'
+alias jlog='tail -n 40 journalctl -f | ccze'    #view  40 entries in pacman log
+alias size='du -hs .[^.]* * | sort -h | ccze -A'         #list 10 dir/files by size
+alias sizevar='sudo du -a /var | sort -n -r | head -n 10' #list 10 dir by size
+alias sizehome="sudo du -a ~/ | sort -n -r | head -n 10"  #list 10 dir by size
+alias uuid="echo -n Listing UUID | pv -qL 10 && ls /dev/disk/by-uuid/ -alh"
+alias userlist='cat /etc/passwd |grep "/bin/bash" |grep "[5-9][0-9][0-9]" |cut -d: -f1'
+alias du="du -h"
+
+alias cdd="cd .."    #up 1 dir
+alias toprun="ps axo %cpu,%mem,comm |sort -unr| head -n 9" #top processes
+alias hist="history -n 20"    #shell history
+alias psusage="ps aux  --sort=-%cpu | grep -m 11 -v `whoami`"  #cpu load
+alias lsbig="echo 'listing files & directories by size' | pv -qL 10 && ls -lSrh | ccze -A"    #sort files dirs by size
+alias lsbig1="echo 'listing files by size' | pv -qL 10 && find . -printf '%s %p\n'|sort -nr|head | ccze -A"    #sort files by size
+#alias iohdd="iostat -d -x -p sda | grep -w 'sda' | awk '{print "Read: "$6 " Write: " $7}' "
+alias iohdd="iostat -x "

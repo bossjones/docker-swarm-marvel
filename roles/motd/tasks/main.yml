@@ -1,0 +1,13 @@
+---
+# - name: setup motd
+#   template: src=motd.j2
+#             dest=/etc/motd
+#             owner=root
+#             group=root
+#             mode=0644
+#   tags:
+#   - motd
+
+
+# tasks file for juliovp01.motd-tcl
+- include: install.yml

@@ -1,0 +1,70 @@
+# TODO: Look at this guy for a good example
+# FIXME: https://github.com/zchen93/Algo/blob/0bb92790945df438780ec9d50ce091889d97a8c7/roles/cloud-digitalocean/tasks/main.yml
+# [local]
+# localhost
+
+[do_tag_role_marvel_swarm_manager]
+
+[do_tags_role_marvel_swarm_manager]
+
+[do_tags_name_baxter]
+
+[do_tag_name_baxter]
+
+[tag_role_marvel_swarm_manager]
+
+[tag_role_marvel_swarm_agent]
+
+[tag_name_stark_tower]
+
+[tag_name_necropolis]
+
+[tag_name_baxter]
+
+[tag_name_latveria]
+
+[tag_cluster_swarm_marvel]
+
+[swarm_manager:children]
+tag_role_marvel_swarm_manager
+do_tags_role_marvel_swarm_manager
+
+[swarm_marvel:children]
+tag_cluster_swarm_marvel
+
+
+[swarm_masters]
+165.227.104.157
+
+[swarm_slaves]
+165.227.108.24
+174.138.55.185
+
+[swarm]
+165.227.104.157
+165.227.108.24
+174.138.55.185
+
+[stark_tower]
+165.227.104.157
+
+[baxter]
+165.227.108.24
+
+[latveria]
+174.138.55.185
+
+[all:vars]
+ansible_python_interpreter="/usr/bin/python"
+# ansible_ssh_user=root
+# ansible_ssh_user=pi
+
+# [all:vars]
+# region=us-east-1
+
+
+
+
+# 66766275    stark-tower            165.227.104.157     10.132.41.67                     8192      4        80      nyc3      Ubuntu 14.04.5 x64    active    role:marvel-swarm-manager,name:stark-tower,region:nyc3,cluster:swarm-marvel
+# 66766364    baxter                 165.227.108.24    10.132.52.233                    2048      2        40      nyc3      Ubuntu 14.04.5 x64    active    role:marvel-swarm-manager,name:baxter,region:nyc3,cluster:swarm-marvel
+# 66766499    latveria               174.138.55.185     10.132.56.13                     1024      1        30      nyc3      Ubuntu 14.04.5 x64    active    role:marvel-swarm-manager,name:latveria,region:nyc3,cluster:swarm-marvel

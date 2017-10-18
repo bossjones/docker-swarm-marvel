@@ -1,0 +1,109 @@
+---
+
+# NOTE: run this before
+# dnf upgrade -y
+# dnf install -y python2 ansible python2-dnf libselinux-python
+
+- hosts: latveria
+  become: yes
+  become_method: sudo
+  gather_facts: yes
+  vars_files:
+    - vars/main.yml
+  roles:
+    - { role: singleplatform-eng.users }
+    - { role: bossjones-ipv6 }
+    - { role: ksylvan.docker }
+    - { role: motd }
+    - { role: bossjones-firewalld }
+    - { role: bossjones.common }
+    # - role: dirn.pyenv
+    #   pyenv_runcom: ~/.zshrc
+    #   pyenv_versions:
+    #     - 2.7.9
+    #     - 3.4.3
+    #     - pypy-2.5.0
+    #     - pypy3-2.4.0
+    #   pyenv_default_versions:
+    #     - 2.7.9
+    #     - pypy-2.5.0
+    #   pyenv_project_versions:
+    #     - 3.4.3
+    #     - pypy3-2.4.0
+
+  pre_tasks:
+
+    - name: Fail if Ansible is ancient
+      fail: msg="We need Ansible >= 2.0. Please update your kit. 'pip install -U Ansible'"
+      when: ansible_version.major < 2
+      tags:
+        - always
+
+    - name: Include vars from local-configure.yml if found
+      include_vars: "{{ item }}"
+      with_first_found:
+       - local-configure.yml
+       - null.yml
+
+    - name: install some small, awesome packages to boost your life
+      dnf: name={{item}} state=present
+      with_items:
+        # - autoconf
+        # - cloc
+        # - curl
+        # - htop
+        # - make
+        # - pinfo
+        # - proxychains
+        # - ranger
+        # - rlwrap
+        # - the_silver_searcher
+        # - tmux
+        # - vim
+        # - vim-enhanced
+        # - ruby
+        - python2
+        - ansible
+        - python2-dnf
+        - libselinux-python
+        - sudo
+        - tcl
+
+    - name: install ctop
+      shell: |
+        curl -L 'https://github.com/bcicen/ctop/releases/download/v0.4.1/ctop-0.4.1-linux-amd64' > /usr/local/bin/ctop
+        chmod +x /usr/local/bin/ctop
+      become: yes
+      become_method: sudo
+      args:
+        executable: /bin/bash
+
+    - name: 'GET ansible_env'
+      debug:
+        msg: "{{ ansible_env | to_nice_json }}"
+
+  tasks:
+
+    - name: Set timezone variables
+      tags: timezone
+      copy: content={{ timezone|default("UTC\n") }}
+            dest=/etc/timezone
+            owner=root
+            group=root
+            mode=0644
+            backup=yes
+      notify:
+        - update timezone
+
+  handlers:
+    - name: update timezone
+      when: ansible_os_family == 'RedHat'
+      file: src=/usr/share/zoneinfo/{{ timezone|default("UTC\n") }}  dest=/etc/localtime state=link force=yes
+
+  post_tasks:
+      - name: Ensure the pi Ansible user has passwordless sudo
+        copy:
+          content: "{{ swarm_ansible_user }} ALL=(ALL) NOPASSWD: ALL"
+          dest: "/etc/sudoers.d/ansible-user"
+          mode: 0440
+        become: True
