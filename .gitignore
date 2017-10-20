@@ -148,3 +148,7 @@ __pycache__
 roles/singleplatform-eng.users/
 ansible-digital_ocean.cache
 steps_dont_commit
+
+static/firewall_payload.json
+static/*
+!static/.gitkeep

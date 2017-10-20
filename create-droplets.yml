@@ -1,9 +1,479 @@
+# -*- coding: utf-8 -*-
+# USAGE: ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/ --skip-tags "pause"
 ---
+##############################################################################
+# file: create-droplets.yml
+# Creates digital ocean droplet
+#
+# Run with:
+#
+# Flush dynamic inventory cache:
+# ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/ --flush-cache
+#
+# DRY RUN(with pause):
+# ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/ --check
+#
+# REAL RUN(w/o pause):
+# ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/ --skip-tags "pause"
+#
+# TAG LOOKUP:
+# ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/ --tag lookup
+#
+# REAL RUN:
+# ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/
+#
+##############################################################################
+
 - hosts: localhost
   connection: local
   gather_facts: false
-  roles:
-     - ansible-role-droplet
+  # vars_prompt:
+  # - name: "elb_type"
+  #   prompt: "Type of load balancer we want to create and add to proxy in ethos cluster"
+  #   private: no
+  # - name: "app_name"
+  #   prompt: "Name of app, must match value in group_vars aws_elb_app_vars"
+  #   private: no
+  # - name: "tier"
+  #   prompt: "AWS account tier"
+  #   private: no
+  # - name: "elb_region"
+  #   prompt: "Region to put elb in. options [ue1, uw1, uw2]"
+  #   private: no
+  # - name: "service_type"
+  #   prompt: "Enter a service type for this elb. options [ethos_v2, ethos_v3, generic]"
+  #   private: no
+  # vars_files:
+  #   - "./vars/aws_generic.yml"
+  #   - "./vars/elb_vars/{{ app_name }}/elb_{{ app_name }}_{{ tier }}.yml"
+  # roles:
+  #    - ansible-role-droplet
+
+  pre_tasks:
+
+    - name: Fail if Ansible is ancient
+      fail: msg="We need Ansible >= 2.0. Please update your kit. 'pip install -U Ansible'"
+      when: ansible_version.major < 2
+      tags:
+        - always
+
+    - name: Include vars from local-configure.yml if found
+      include_vars: "{{ item }}"
+      with_first_found:
+       - local-configure.yml
+       - null.yml
+
+    # ---------------
+    # source: https://github.com/holms/ansible-coreos/blob/a37d7e493ff3712d4c4155cc45044abd655bbbec/roles/coreos/tasks/do.yml
+    # - name: Digital Ocean | Get ssh key id's
+    #   uri:
+    #     url: "https://api.digitalocean.com/v2/account/keys"
+    #     HEADER_Authorization: Bearer {{ lookup('env','DIGITALOCEAN_ACCESS_TOKEN') }}
+    #     status_code: 200
+    #   register: ssh_keys
+
+
+    - name: Digital Ocean | Get nodes
+      uri:
+        url: "https://api.digitalocean.com/v2/droplets"
+        HEADER_Authorization: Bearer {{ lookup('env','DIGITALOCEAN_ACCESS_TOKEN') }}
+        status_code: 200
+      register: droplet_nodes
+
+    - name: "PRINT droplet_nodes - BEFORE"
+      debug:
+        msg: "{{ droplet_nodes }}"
+      when: droplet_nodes is defined
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - droplet_nodes
+
+    # - name: "Extract droplet information"
+    #   set_fact: do_droplets_with_ip="{{ result_droplets | json_query(droplet_query) }}"
+    #   vars:
+    #     droplet_query: "results[*].{ ip: droplet.ip_address, port: item.port, name: droplet.name, user: item.user, ssh_key_name: item.ssh_key_name }"
+    #   changed_when: no
+
+    - name: "PRINT {{ item }}"
+      debug:
+        msg: "{{ item.name }}"
+      when: droplet_nodes is defined
+      with_items: "{{ droplet_nodes.json.droplets }}"
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - droplet_nodes
+
+    - name: "CREATE existing_droplets_by_name fact with empty array"
+      set_fact: existing_droplets_by_name="[]"
+      check_mode: no
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - set_fact
+        - existing_droplets_by_name
+
+    - name: "POPULATE existing_droplets_by_name fact, which contains array of SUBNET ids"
+      set_fact: existing_droplets_by_name="{{existing_droplets_by_name}} + ['{{ item.name }}']"
+      when: item is defined
+      check_mode: no
+      with_items:
+        - "{{ droplet_nodes.json.droplets }}"
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - set_fact
+        - existing_droplets_by_name
+
+    - name: 'PRINT existing_droplets_by_name={{ item }}'
+      debug:
+        msg: "{{ existing_droplets_by_name }}"
+      when: existing_droplets_by_name is defined
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - droplet_nodes
+
+    # - name: wait 1 minute before continuing forward.
+    #   pause: minutes=1
+
+    # ---------------
+
+    # FIXME: turn this into a uri call just like the droplets play above
+    - name: Get existing doctl_ssh_keys
+      shell: "doctl compute ssh-key ls | grep -v 'ID         Name               FingerPrint'"
+      register: doctl_ssh_keys_results
+      check_mode: no
+      # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+      changed_when: False
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - get_doctl_ssh_keys
+
+    - name: "PRINT doctl_ssh_keys_results - BEFORE"
+      debug:
+        msg: "{{ doctl_ssh_keys_results }}"
+      when: doctl_ssh_keys_results is defined
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - doctl_ssh_keys
+
+    - name: 'PRINT results from elb_vars find shell command'
+      debug:
+        msg: "{{ doctl_ssh_keys_results.stdout_lines }}"
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - get_elb_vars
+
+    - name: 'Put together application names using jinja2 filter splittext'
+      debug:
+        msg: "{{ item | splitext | string }}"
+      with_items: "{{ doctl_ssh_keys_results.stdout_lines }}"
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - get_elb_vars
+
+    - name: 'run: item.split(" ")[0]'
+      debug:
+        msg: "{{ item.split(' ')[0] }}"
+      with_items: "{{ doctl_ssh_keys_results.stdout_lines }}"
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - get_elb_vars
+
+
+    - name: "CREATE ssh_key_ids fact with empty array"
+      set_fact: ssh_key_ids="[]"
+      check_mode: no
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - set_fact
+        - doctl_ssh_keys
+
+    - name: "PRINT ssh_key_ids - BEFORE"
+      debug:
+        msg: "{{ ssh_key_ids }}"
+      when: ssh_key_ids is defined
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - doctl_ssh_keys
+
+    - name: "POPULATE ssh_key_ids fact, which contains array of SUBNET ids"
+      set_fact: ssh_key_ids="{{ssh_key_ids}} + ['{{ item.split(' ')[0] }}']"
+      when: item is defined
+      check_mode: no
+      with_items:
+        - "{{ doctl_ssh_keys_results.stdout_lines }}"
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - set_fact
+        - doctl_ssh_keys
+
+    - name: "PRINT ssh_key_ids - AFTER"
+      debug:
+        msg: "{{ ssh_key_ids }}"
+      when: ssh_key_ids is defined
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - doctl_ssh_keys
+
+# ---------------
+# ---------------
+# ---------------
+# ---------------
+# ---------------
+# ---------------
+# ------------
+
+# TODO: USE THIS
+# - name: "Create droplets"
+#   digital_ocean:
+#     backups_enabled: "{{ item.backups_enabled | default('no') }}"
+#     command: droplet
+#     image_id: "{{ item.image_id | default('ubuntu-16-04-x64') }}"
+#     name: "{{ item.name }}"
+#     private_networking: "{{ item.private_networking | default('no') }}"
+#     region_id: "{{ item.region_id | default('fra1') }}"
+#     size_id: "{{ item.size_id | default('512mb') }}"
+#     ssh_key_ids: "{{ ssh_keys | json_query('results[*].ssh_key') | selectattr('name', 'equalto', item.ssh_key_name) | map(attribute='id') | list }}"
+#     state: active
+#     unique_name: yes
+#     user_data: "{{ lookup('template', 'user-data.j2') | trim }}"
+#     virtio: "{{ item.virtio | default('yes') }}"
+#     wait: "{{ item.wait | default('yes') }}"
+#     wait_timeout: "{{ item.wait_timeout | d(600) }}"
+#   with_items: "{{ do_droplets }}"
+#   register: result_droplets
+
+# - name: "Extract droplet information"
+#   set_fact: do_droplets_with_ip="{{ result_droplets | json_query(droplet_query) }}"
+#   vars:
+#     droplet_query: "results[*].{ ip: droplet.ip_address, port: item.port, name: droplet.name, user: item.user, ssh_key_name: item.ssh_key_name }"
+#   changed_when: no
+
+# --------------------------------------------------------------------------------
+# Return ids of droplets
+# --------------------------------------------------------------------------------
+
+    - name: Get existing doctl_ssh_keys
+      shell: "doctl compute ssh-key ls | grep -v 'ID         Name               FingerPrint'"
+      register: doctl_ssh_keys_results
+      check_mode: no
+      # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+      changed_when: False
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - get_doctl_ssh_keys
+
+    - name: "PRINT doctl_ssh_keys_results - BEFORE"
+      debug:
+        msg: "{{ doctl_ssh_keys_results }}"
+      when: doctl_ssh_keys_results is defined
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - doctl_ssh_keys
+
+    - name: 'PRINT results from elb_vars find shell command'
+      debug:
+        msg: "{{ doctl_ssh_keys_results.stdout_lines }}"
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - get_elb_vars
+
+    - name: 'Put together application names using jinja2 filter splittext'
+      debug:
+        msg: "{{ item | splitext | string }}"
+      with_items: "{{ doctl_ssh_keys_results.stdout_lines }}"
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - get_elb_vars
+
+    - name: 'run: item.split(" ")[0]'
+      debug:
+        msg: "{{ item.split(' ')[0] }}"
+      with_items: "{{ doctl_ssh_keys_results.stdout_lines }}"
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - get_elb_vars
+
+
+    - name: "CREATE ssh_key_ids fact with empty array"
+      set_fact: ssh_key_ids="[]"
+      check_mode: no
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - set_fact
+        - doctl_ssh_keys
+
+    - name: "PRINT ssh_key_ids - BEFORE"
+      debug:
+        msg: "{{ ssh_key_ids }}"
+      when: ssh_key_ids is defined
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - doctl_ssh_keys
+
+    - name: "POPULATE ssh_key_ids fact, which contains array of SUBNET ids"
+      # NOTE: convert "/Users/malcolm/dev/behanceops/ansible/vars/elb_vars//inbox/stage/elb_inbox_stage.yml" to "inbox"
+      set_fact: ssh_key_ids="{{ssh_key_ids}} + ['{{ item.split(' ')[0] }}']"
+      when: item is defined
+      check_mode: no
+      with_items:
+        - "{{ doctl_ssh_keys_results.stdout_lines }}"
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - set_fact
+        - doctl_ssh_keys
+
+
+    - name: "PRINT ssh_key_ids - AFTER"
+      debug:
+        msg: "{{ ssh_key_ids }}"
+      when: ssh_key_ids is defined
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - doctl_ssh_keys
+
+# --------------------------------------------------------------------------------
+#
+# --------------------------------------------------------------------------------
+
+
+# ---------------
+
+
+    - name: "tag a resource; creating the tag if it does not exists {{ item }}"
+      debug:
+        msg: "{{ item }}"
+      when: do_tags_to_create is defined
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - doctl_ssh_keys
+      with_items:
+        - "{{do_tags_to_create}}"
+
+    - name: "tag a resource; creating the tag if it does not exists {{ item }}"
+      digital_ocean_tag:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - "{{do_tags_to_create}}"
+      when: do_tags_to_create is defined
+
+    # - name: wait 5 minute before creating droplet.
+    #   pause: minutes=5
+
+    - name: "Create droplets {{ item.value.name }}"
+      digital_ocean:
+        backups_enabled: "{{ item.value.backups_enabled | default('no') }}"
+        command: droplet
+        image_id: "{{ item.value.image_id | default('fedora-24-x64') }}"
+        name: "{{ item.value.name }}"
+        private_networking: "{{ item.value.private_networking | default('no') }}"
+        region_id: "{{ item.value.region_id | default('nyc3') }}"
+        size_id: "{{ item.value.size_id | default('512mb') }}"
+        # ssh_key_ids: "{{ ssh_keys | json_query('results[*].ssh_key') | selectattr('name', 'equalto', item.value.ssh_key_name) | map(attribute='id') | list }}"
+        ssh_key_ids: "{{ ssh_key_ids }}"
+        state: "{{ item.value.state }}"
+        virtio: "{{ item.value.virtio | default('yes') }}"
+        wait: "{{ item.value.wait | default('yes') }}"
+        wait_timeout: "{{ item.value.wait_timeout | d(600) }}"
+      with_dict: "{{ avenger_servers }}"
+      when: "{{ item.value.name not in existing_droplets_by_name }}"
+      register: result_droplets
+
+    - name: "PRINT var result_droplets"
+      debug:
+        msg: "{{ result_droplets }}"
+      when: result_droplets is defined
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - doctl_ssh_keys
+
+
+# ssh_keys | json_query('results[*].ssh_key') | selectattr('name', 'equalto', item.value.ssh_key_name) | map(attribute='id') | list
+
+
+
+    - name: "CREATE droplet_info fact with empty array"
+      set_fact: droplet_info="[]"
+      check_mode: no
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - set_fact
+        - doctl_ssh_keys
+
+    - name: "PRINT droplet_info - BEFORE"
+      debug:
+        msg: "{{ droplet_info }}"
+      when: droplet_info is defined
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - doctl_ssh_keys
+
+    - name: "POPULATE droplet_info fact"
+      set_fact: droplet_info="{{droplet_info}} + ['{{ droplet_nodes.json.droplets | json_query('droplets[*].ssh_key') }}']"
+      when: item is defined
+      check_mode: no
+      with_items:
+        - "{{ doctl_ssh_keys_results.stdout_lines }}"
+      tags:
+        - lookup
+        - debug
+        - do_lookup
+        - set_fact
+        - doctl_ssh_keys
+
 
 # source: https://github.com/zchen93/Algo/blob/0bb92790945df438780ec9d50ce091889d97a8c7/roles/cloud-digitalocean/tasks/main.yml#L43
 

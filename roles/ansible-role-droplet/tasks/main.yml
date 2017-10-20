@@ -1,16 +1,19 @@
 ---
+# TODO: Enable all of below when done testing
 # tasks file for droplet
-- shell: |
-    GREP=grep
-    if [ `uname` == 'Darwin' ]; then
-        GREP=ggrep
-    fi
-    $GREP -oP '^{{ name }}.*droplet_id=\K(.*)$' {{ playbook_dir }}/digitalocean
-  register: grep
-  ignore_errors: yes
+# - shell: |
+#     GREP=grep
+#     if [ `uname` == 'Darwin' ]; then
+#         GREP=ggrep
+#     fi
+#     $GREP -oP '^{{ name }}.*droplet_id=\K(.*)$' {{ playbook_dir }}/digitalocean
+#   register: grep
+#   ignore_errors: yes
 
-- set_fact: droplet_id="{{ grep.stdout }}"
-  when: grep.stdout
+# - set_fact: droplet_id="{{ grep.stdout }}"
+#   when: grep.stdout
 
-- include: rest_of_main.yml
-  when: not grep.stdout
+# - include: rest_of_main.yml
+#   when: not grep.stdout
+
+- include: firewall.yml

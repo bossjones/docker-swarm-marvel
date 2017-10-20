@@ -12,3 +12,4 @@ six==1.10.0
 simplejson==3.10.0
 dopy
 yolk3k
+ipython

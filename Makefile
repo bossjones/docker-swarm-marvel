@@ -100,6 +100,8 @@ show-adhoc-examples:
 # OS X's older openssl version will fail against certain python modules, namely "cryptography"
 # Taken from this git issue pyca/cryptography#2692
 install-virtualenv-osx:
+	ARCHFLAGS="-arch x86_64" LDFLAGS="-L/usr/local/opt/openssl/lib" CFLAGS="-I/usr/local/opt/openssl/include" pip install --ignore-installed --pre "https://github.com/pradyunsg/pip/archive/hotfix/9.0.2.zip#egg=pip"
+	ARCHFLAGS="-arch x86_64" LDFLAGS="-L/usr/local/opt/openssl/lib" CFLAGS="-I/usr/local/opt/openssl/include" pip install --upgrade setuptools==36.0.1 wheel==0.29.0
 	ARCHFLAGS="-arch x86_64" LDFLAGS="-L/usr/local/opt/openssl/lib" CFLAGS="-I/usr/local/opt/openssl/include" pip install -r requirements.txt
 
 install-virtualenv:

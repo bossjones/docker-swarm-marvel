@@ -1,0 +1,37 @@
+{
+  "name": "{{do_firewall_name}}",
+  "inbound_rules": [
+    {% for fire_inbound in firewall_inbound_rules_hash %}
+    {% set outer_loop = loop %}
+    {
+      "protocol": "{{fire_inbound.protocol}}",
+      "ports": "{{fire_inbound.ports}}",
+      "sources": {
+        "addresses": [
+        "{{fire_inbound.sources.addresses[0]}}"
+        ],
+      },
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+"outbound_rules": [
+  {% for fire_outbound in firewall_outbound_rules_hash %}
+  {
+    "protocol": "{{fire_outbound.protocol}}",
+    "ports": "{{fire_outbound.ports}}",
+    "destinations": {
+      "addresses": [
+        {% for out_addresses in fire_outbound.destinations.addresses %}
+        "{{out_addresses}}"{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ],
+    },
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+],
+"droplet_ids": [
+  8043964
+],
+"tags": null,
+}
+
