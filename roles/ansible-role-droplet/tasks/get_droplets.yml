@@ -51,6 +51,6 @@
 #   pause: minutes=1
 
 # Make fact containing just info on droplet name, and droplet id:
-# jq -r '.msg.json.droplets[]| {name: .name, id: .id}' < /Users/malcolm/dev/bossjones/docker-swarm-marvel/static/droplets_response.json
+# jq -r '.msg.json.droplets[]| {name: .name, id: .id}' < /Users/user/dev/bossjones/docker-swarm-marvel/static/droplets_response.json
 
 # -----------------------------------

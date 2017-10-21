@@ -108,7 +108,7 @@
     - fact_jq_ssh_key_ids_only
 
 # TASK [ansible-role-droplet : PRINT fact_jq_ssh_key_ids_only] *******************
-# task path: /Users/malcolm/dev/bossjones/docker-swarm-marvel/roles/ansible-role-droplet/tasks/get_ssh_keys.yml:96
+# task path: /Users/user/dev/bossjones/docker-swarm-marvel/roles/ansible-role-droplet/tasks/get_ssh_keys.yml:96
 # ok: [localhost] => {
 #     "msg": [
 #         "27133",
@@ -121,3 +121,5 @@
 
 - name: pause to see that everything is good
   pause: minutes=1
+  tags:
+    - pause

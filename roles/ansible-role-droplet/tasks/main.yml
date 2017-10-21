@@ -17,17 +17,20 @@
 # - set_fact: droplet_id="{{ grep.stdout }}"
 #   when: grep.stdout
 
+- name: "Create digital ocean tags"
+  include: create_tags.yml
+
 - name: "Get droplet ids"
   include: get_droplet_ids.yml
 
-# - name: "Lets get all digital ocean ssh keys"
-#   include: get_ssh_keys.yml
-#
-# - name: "Lets create the droplets now"
-#   include: rest_of_main.yml
-#   # when: not grep.stdout
-#
-# - name: "Run firewall"
-#   include: firewall.yml
-#   # with_dict: "{{ avenger_servers }}"
-#
+- name: "Lets get all digital ocean ssh keys"
+  include: get_ssh_keys.yml
+
+- name: "Lets create the droplets now"
+  include: rest_of_main.yml
+
+- name: "Run firewall"
+  include: firewall.yml
+
+- name: "Run update_firewall"
+  include: update_firewall.yml

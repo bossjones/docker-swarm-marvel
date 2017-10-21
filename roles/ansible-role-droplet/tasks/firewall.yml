@@ -391,7 +391,7 @@
   when: >
     item is defined
     and
-    item.name == 'marvel-swarm-rules'
+    item.name == do_firewall_name
   check_mode: no
   with_items:
     - "{{ doctl_compute_firewall_list_to_json }}"
@@ -703,6 +703,8 @@
     do_firewall_name: "{{ do_firewall_name }}"
     firewall_inbound_rules_hash: "{{ firewall_inbound_rules_hash }}"
     firewall_outbound_rules_hash: "{{ firewall_outbound_rules_hash }}"
+    matching_droplet_ids_only: "{{ matching_droplet_ids_only }}"
+    tags_to_use: "{{firewall_tag_name |string }}"
   tags:
     - docker
     - all

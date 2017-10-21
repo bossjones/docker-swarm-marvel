@@ -1,6 +1,6 @@
 ---
 # Make fact containing just info on droplet name, and droplet id:
-# jq -r '.msg.json.droplets[]| {name: .name, id: .id}' < /Users/malcolm/dev/bossjones/docker-swarm-marvel/static/droplets_response.json
+# jq -r '.msg.json.droplets[]| {name: .name, id: .id}' < /Users/user/dev/bossjones/docker-swarm-marvel/static/droplets_response.json
 
 - name: "CREATE servers_list_by_name fact with empty array"
   set_fact: servers_list_by_name="[]"
@@ -85,13 +85,13 @@
 # source: https://stackoverflow.com/questions/31895602/ansible-filter-a-list-by-its-attributes
 
 #  |2.2.3|  using virtualenv: docker-swarm-marvel2  hyenatop in ~/dev/bossjones/docker-swarm-marvel
-# ± |feature-inital U:5 ?:3 ✗| → jq -r '[.msg.json.droplets[]| {name: .name, id: .id}]' < /Users/malcolm/dev/bossjones/docker-swarm-marvel/static/droplets_response.json
+# ± |feature-inital U:5 ?:3 ✗| → jq -r '[.msg.json.droplets[]| {name: .name, id: .id}]' < /Users/user/dev/bossjones/docker-swarm-marvel/static/droplets_response.json
 # [
 #   {
-#     "scarlettnet.dark.io": 4320917
+#     "scarlettnet.dark.io": 4536436
 #   },
 #   {
-#     "scarlett-travis": 54418445
+#     "scarlett-travis": 34645345
 #   }
 # ]
 
@@ -102,13 +102,13 @@
 #   [
 #     {
 #       "name": "scarlettnet.dark.io",
-#       "id": 4320917
+#       "id": 4353453
 #     }
 #   ],
 #   [
 #     {
 #       "name": "scarlett-travis",
-#       "id": 54418445
+#       "id": 4356436
 #     }
 #   ]
 # ]
@@ -164,7 +164,7 @@
 
 # NOTE: Example contents of fact_droplet_name_and_id_only
 # TASK [ansible-role-droplet : PRINT fact_droplet_name_and_id_only] **************
-# task path: /Users/malcolm/dev/bossjones/docker-swarm-marvel/roles/ansible-role-droplet/tasks/get_droplet_ids.yml:121
+# task path: /Users/user/dev/bossjones/docker-swarm-marvel/roles/ansible-role-droplet/tasks/get_droplet_ids.yml:121
 # ok: [localhost] => {
 #     "msg": [
 #         [
@@ -251,7 +251,6 @@
     - do_lookup
     - set_fact
 
-
 - name: 'PRINT matching_droplet_ids_only'
   debug:
     msg: "{{matching_droplet_ids_only}}"
@@ -272,57 +271,7 @@
     - do_lookup
     - matching_droplet_ids_only
 
-# - name: 'PRINT fact_droplet_name_and_id_only by item'
-#   debug:
-#     msg: "{{item}}"
-#   with_items:
-#   - "{{fact_droplet_name_and_id_only | list}}"
-#   tags:
-#     - lookup
-#     - debug
-#     - do_lookup
-#     - fact_droplet_name_and_id_only
-
-
-# - name: 'PRINT fact_droplet_name_and_id_only by item|get_var_type'
-#   debug:
-#     msg: "{{item|get_var_type}}"
-#   with_items:
-#   - "{{fact_droplet_name_and_id_only | list}}"
-#   tags:
-#     - lookup
-#     - debug
-#     - do_lookup
-#     - fact_droplet_name_and_id_only
-
-# # Create a fact containing ONLY the droplet ids that match the names found in avenger_servers variable
-# - name: "CREATE FACT [matching_droplet_ids_only]"
-#   set_fact:
-#     matching_droplet_ids_only: |
-#       {% set res = [] -%}
-#       {%- for i in item -%}
-#         {% if i in servers_list_by_name -%}
-#           {% set ignored = res.append(i) -%}
-#         {%- endif %}
-#       {%- endfor %}
-#       {{ res }}
-#   with_items:
-#   - "{{ fact_droplet_name_and_id_only|default([]) }}"
-#   check_mode: no
-#   tags:
-#     - lookup
-#     - debug
-#     - do_lookup
-#     - set_fact
-
-# - name: 'PRINT matching_droplet_ids_only'
-#   debug:
-#     msg: "{{ matching_droplet_ids_only }}"
-#   tags:
-#     - lookup
-#     - debug
-#     - do_lookup
-#     - matching_droplet_ids_only
-
 - name: pause to see that everything is good
   pause: minutes=1
+  tags:
+    - pause

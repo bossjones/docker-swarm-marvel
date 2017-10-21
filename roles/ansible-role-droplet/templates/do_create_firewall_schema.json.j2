@@ -9,8 +9,8 @@
       "sources": {
         "addresses": [
         "{{fire_inbound.sources.addresses[0]}}"
-        ],
-      },
+        ]
+      }
     }{% if not loop.last %},{% endif %}
     {% endfor %}
   ],
@@ -18,20 +18,20 @@
   {% for fire_outbound in firewall_outbound_rules_hash %}
   {
     "protocol": "{{fire_outbound.protocol}}",
+    {% if fire_outbound.ports is defined %}
     "ports": "{{fire_outbound.ports}}",
+    {% endif %}
     "destinations": {
       "addresses": [
         {% for out_addresses in fire_outbound.destinations.addresses %}
         "{{out_addresses}}"{% if not loop.last %},{% endif %}
         {% endfor %}
-      ],
-    },
+      ]
+    }
   }{% if not loop.last %},{% endif %}
   {% endfor %}
 ],
-"droplet_ids": [
-  8043964
-],
-"tags": null,
+"droplet_ids": {{matching_droplet_ids_only|default([])}},
+"tags": {% if tags_to_use is defined %}["{{ tags_to_use }}"]{% else %}[]{% endif %}
 }
 

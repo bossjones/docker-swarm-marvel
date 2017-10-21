@@ -1,26 +1,9 @@
 ---
-- debug:
+- name: 'PRINT: droplet_id if it has been defined'
+  debug:
     msg: "ID is {{ droplet_id }}"
   ignore_errors: yes
   when: droplet_id is defined
-
-# - name: ensure ssh key exists
-#   user:
-#     name: "{{ ansible_user_id }}"
-#     # This will not overwrite an existing SSH key.
-#     generate_ssh_key: yes
-#     # Relative to the user's home directory
-#     ssh_key_file: .ssh/id_rsa
-#   become: true
-
-# - name: ensure key exists at DigitalOcean
-#   digital_ocean:
-#     state: present
-#     command: ssh
-#     name: my_ssh_key
-#     ssh_pub_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
-#     api_token: "{{ DO_API_TOKEN }}"
-#   register: my_ssh_key
 
 - name: "Ensure droplet exists {{ item.value.name }}"
   digital_ocean:
@@ -38,31 +21,121 @@
   register: ensure_droplet
   with_dict: "{{ avenger_servers }}"
 
-# ??? write to inventory
-- local_action:
-    module: blockinfile
-    create: yes
-    mode: 0666
-    path: "{{ playbook_dir }}/{{ inventory_to_update }}"
-    marker: "# {mark} {{ ensure_droplet.name }}"
-    content: |
-      [{{ droplet_groups }}]
-      {{ ensure_droplet.name }} ansible_host={{ ensure_droplet.droplet.ip_address }} droplet_id={{ ensure_droplet.droplet.id }} ansible_ssh_user=root ansible_python_interpreter=/usr/bin/python
-
-- name: 'PRINT: IP is {{ ensure_droplet.droplet.ip_address }}'
+- name: 'PRINT: ensure_droplet'
   debug:
-    msg: "IP is {{ ensure_droplet.droplet.ip_address }}"
+    msg: "{{ensure_droplet}}"
 
-- local_action:
-    module: add_host
-    hostname: "{{ ensure_droplet.droplet.ip_address }}"
-    groups: "{{ droplet_groups }}"
-    ansible_ssh_user: root
-    # ansible_ssh_private_key_file: "{{ '~/.ssh/id_rsa' | expanduser }}"
-    ansible_host: "{{ ensure_droplet.droplet.ip_address }}"
-    ansible_ssh_host: "{{ ensure_droplet.droplet.ip_address }}"
-    ansible_python_interpreter: python
+- name: 'Set {{ playbook_dir }}/static/droplet_creation_response.json'
+  template: src={{role_path}}/templates/generic_json.json.j2 dest={{ playbook_dir }}/static/droplet_creation_response.json
+  vars:
+    # NOTE: This gets rid of unicode characters inside of the json doc
+    generic_json: "{{ ensure_droplet.results | to_nice_json }}"
+  delegate_to: localhost
 
+- name: '/bin/cat {{ playbook_dir }}/static/droplet_creation_response.json'
+  shell: "/bin/cat {{ playbook_dir }}/static/droplet_creation_response.json"
+  register: droplet_creation_response
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplet_creation_response
+
+- name: "PRINT droplet_creation_response"
+  debug:
+    msg: "{{ droplet_creation_response.stdout }}"
+  when: droplet_creation_response is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplet_creation_response
+
+- name: wait 1 minute before creating droplet.
+  pause: minutes=1
+  tags:
+    - pause
+
+#  |2.2.3|  using virtualenv: docker-swarm-marvel2  hyenatop in ~/dev/bossjones/docker-swarm-marvel
+# ± |feature-inital U:6 ?:1 ✗| → jq -r '[.msg[].droplet| {name:.name, id:.id, ip_address:.ip_address}]' < ./static/droplet_creation_response.json
+# [
+#   {
+#     "name": "baxter",
+#     "id": 67316638,
+#     "ip_address": "45.55.147.156"
+#   }
+# ]
+
+# FIXME: fix this
+- name: "jq -r '[.msg[].droplet| {name:.name, id:.id, ip_address:.ip_address}]' < {{ playbook_dir }}/static/droplet_creation_response.json"
+  shell: >
+    jq -r '.msg[].droplet| {name:.name, id:.id, ip_address:.ip_address}' < {{ playbook_dir }}/static/droplet_creation_response.json
+  register: new_droplet_name_ip_and_id
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - new_droplet_name_ip_and_id
+
+# source: https://stackoverflow.com/questions/31895602/ansible-filter-a-list-by-its-attributes
+- name: 'PRINT new_droplet_name_ip_and_id.stdout BY ITEM'
+  debug:
+    msg: "{{ item }}"
+  with_items: "{{ new_droplet_name_ip_and_id.stdout }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - new_droplet_name_ip_and_id
+
+# NOTE: Using Ansible set_fact to create a dictionary from register results
+# source: https://stackoverflow.com/questions/35605603/using-ansible-set-fact-to-create-a-dictionary-from-register-results/35608380
+# {'ip_cidrs': {{fact_jq_type_and_ips}} }
+- name: Create fact fact_new_droplet_name_ip_and_id as a dictonary with key 'ip_cidrs' and value list fact_jq_type_and_ips
+  set_fact:
+    fact_new_droplet_name_ip_and_id: "[{{new_droplet_name_ip_and_id.stdout}}]"
+
+- name: 'PRINT: IP is {{ fact_new_droplet_name_ip_and_id }}'
+  debug:
+    msg: "IP is {{ fact_new_droplet_name_ip_and_id }}"
+
+- name: 'PRINT: ip_address: { item.ip_address }}'
+  with_items: "{{fact_new_droplet_name_ip_and_id}}"
+  debug:
+    msg: "ip_address: {{ item.ip_address }}"
+
+##########################################################################################
+# FIXME: Run this manually ( ansible is failing on stupid things, not worth the time )
+##########################################################################################
+# ??? write to inventory
+# - local_action:
+#     with_items: "{{fact_new_droplet_name_ip_and_id}}"
+#     module: blockinfile
+#     create: yes
+#     mode: 0666
+#     path: "{{ playbook_dir }}/{{ inventory_to_update }}"
+#     marker: "# {mark} {{ item.name }}"
+#     content: |
+#       [{{ droplet_groups }}]
+#       {{ item.name }} ansible_host={{ item.ip_address }} droplet_id={{ item.id }} ansible_ssh_user=root ansible_python_interpreter=/usr/bin/python
+#
+# - local_action:
+#     module: add_host
+#     with_items: "{{fact_new_droplet_name_ip_and_id}}"
+#     hostname: "{{ item.ip_address }}"
+#     groups: "{{ droplet_groups }}"
+#     ansible_ssh_user: root
+#     # ansible_ssh_private_key_file: "{{ '~/.ssh/id_rsa' | expanduser }}"
+#     ansible_host: "{{ item.ip_address }}"
+#     ansible_ssh_host: "{{ item.ip_address }}"
+#     ansible_python_interpreter: python
+##########################################################################################
 # - local_action:
 #     module: gcdns_record
 #     credentials_file: nobreach-855249fcb65a.json
@@ -72,3 +145,4 @@
 #     overwrite: true
 #     record_data:
 #       - "{{ droplet.droplet.ip_address }}"
+##########################################################################################
