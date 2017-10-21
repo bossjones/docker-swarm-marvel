@@ -98,17 +98,20 @@
 # source: https://stackoverflow.com/questions/35605603/using-ansible-set-fact-to-create-a-dictionary-from-register-results/35608380
 # {'ip_cidrs': {{fact_jq_type_and_ips}} }
 - name: Create fact fact_new_droplet_name_ip_and_id as a dictonary with key 'ip_cidrs' and value list fact_jq_type_and_ips
+  when: new_droplet_name_ip_and_id is defined
   set_fact:
     fact_new_droplet_name_ip_and_id: "[{{new_droplet_name_ip_and_id.stdout}}]"
 
 - name: 'PRINT: IP is {{ fact_new_droplet_name_ip_and_id }}'
+  when: fact_new_droplet_name_ip_and_id is defined
   debug:
     msg: "IP is {{ fact_new_droplet_name_ip_and_id }}"
 
-- name: 'PRINT: ip_address: { item.ip_address }}'
-  with_items: "{{fact_new_droplet_name_ip_and_id}}"
-  debug:
-    msg: "ip_address: {{ item.ip_address }}"
+# - name: 'PRINT: ip_address: { item.ip_address }}'
+#   with_items: "{{fact_new_droplet_name_ip_and_id}}"
+#   when: fact_new_droplet_name_ip_and_id is defined
+#   debug:
+#     msg: "ip_address: {{ item.ip_address }}"
 
 ##########################################################################################
 # FIXME: Run this manually ( ansible is failing on stupid things, not worth the time )
