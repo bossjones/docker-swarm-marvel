@@ -1,0 +1,56 @@
+---
+
+# NOTE: We want to run this before AND after we create the new droplets
+- name: Digital Ocean | Get nodes
+  uri:
+    url: "https://api.digitalocean.com/v2/droplets"
+    HEADER_Authorization: Bearer {{ lookup('env','DIGITALOCEAN_ACCESS_TOKEN') }}
+    status_code: 200
+  register: droplet_nodes
+
+- name: 'Set {{ playbook_dir }}/static/droplets_response.json'
+  template: src={{role_path}}/templates/generic_json.json.j2 dest={{ playbook_dir }}/static/droplets_response.json
+  vars:
+    # NOTE: This gets rid of unicode characters inside of the json doc
+    generic_json: "{{ droplet_nodes | to_nice_json }}"
+  delegate_to: localhost
+
+- name: '/bin/cat {{ playbook_dir }}/static/droplets_response.json'
+  shell: "/bin/cat {{ playbook_dir }}/static/droplets_response.json"
+  register: droplets_response
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplets_response
+
+- name: "PRINT droplets_response"
+  debug:
+    msg: "{{ droplets_response.stdout }}"
+  when: droplets_response is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplets_response
+
+- name: "PRINT droplet_nodes"
+  debug:
+    msg: "{{ droplet_nodes }}"
+  when: droplet_nodes is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplet_nodes
+
+# - name: pause to see that everything is good
+#   pause: minutes=1
+
+# Make fact containing just info on droplet name, and droplet id:
+# jq -r '.msg.json.droplets[]| {name: .name, id: .id}' < /Users/malcolm/dev/bossjones/docker-swarm-marvel/static/droplets_response.json
+
+# -----------------------------------

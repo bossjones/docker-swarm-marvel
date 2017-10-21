@@ -1,23 +1,33 @@
 ---
 # TODO: Enable all of below when done testing
 # tasks file for droplet
-# - shell: |
+# - block:
+
+# - name: 'shell check for existing inventory item using ggrep'
+#   shell: |
 #     GREP=grep
 #     if [ `uname` == 'Darwin' ]; then
 #         GREP=ggrep
 #     fi
-#     $GREP -oP '^{{ name }}.*droplet_id=\K(.*)$' {{ playbook_dir }}/digitalocean
+#     $GREP -oP '^{{ item }}.*droplet_id=\K(.*)$' {{ playbook_dir }}/{{inventory_to_update}}
 #   register: grep
 #   ignore_errors: yes
+#   with_items: ['baxter']
 
 # - set_fact: droplet_id="{{ grep.stdout }}"
 #   when: grep.stdout
 
-# - include: rest_of_main.yml
-#   when: not grep.stdout
+- name: "Get droplet ids"
+  include: get_droplet_ids.yml
 
-- name: "Lets get all digital ocean ssh keys"
-  include: get_ssh_keys.yml
-
+# - name: "Lets get all digital ocean ssh keys"
+#   include: get_ssh_keys.yml
+#
+# - name: "Lets create the droplets now"
+#   include: rest_of_main.yml
+#   # when: not grep.stdout
+#
 # - name: "Run firewall"
 #   include: firewall.yml
+#   # with_dict: "{{ avenger_servers }}"
+#

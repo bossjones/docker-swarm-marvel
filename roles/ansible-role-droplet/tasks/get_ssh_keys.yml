@@ -2,12 +2,18 @@
 
 # ---------------
 # source: https://github.com/holms/ansible-coreos/blob/a37d7e493ff3712d4c4155cc45044abd655bbbec/roles/coreos/tasks/do.yml
+
+###################################
+# Api call to get ssh keys
+
 - name: Digital Ocean | Get ssh key id's
   uri:
     url: "https://api.digitalocean.com/v2/account/keys"
     HEADER_Authorization: Bearer {{ lookup('env','DIGITALOCEAN_ACCESS_TOKEN') }}
     status_code: 200
   register: ssh_keys_response
+
+###################################
 
 - name: 'Set {{ playbook_dir }}/static/do_ssh_keys.json'
   template: src={{role_path}}/templates/generic_json.json.j2 dest={{ playbook_dir }}/static/do_ssh_keys.json

@@ -83,6 +83,32 @@
     #     status_code: 200
     #   register: ssh_keys
 
+# Afterwards, try to ssh and connect
+- hosts: do
+  remote_user: root
+  gather_facts: false
+
+  pre_tasks:
+
+    - name: Fail if Ansible is ancient
+      fail: msg="We need Ansible >= 2.0. Please update your kit. 'pip install -U Ansible'"
+      when: ansible_version.major < 2
+      tags:
+        - always
+
+    - name: Include vars from local-configure.yml if found
+      include_vars: "{{ item }}"
+      with_first_found:
+       - local-configure.yml
+       - null.yml
+
+  tasks:
+    - name: Wait for port 22 to become available.
+      local_action: "wait_for port=22 host={{ inventory_hostname }}"
+
+    - name: Install tcpdump.
+      yum: name=tcpdump state=present
+
 
 ### DISABLED #     - name: Digital Ocean | Get nodes
 ### DISABLED #       uri:
