@@ -34,3 +34,11 @@
 
 - name: "Run update_firewall"
   include: update_firewall.yml
+
+# get latest list of instances
+- name: "Get droplet ids"
+  include: get_droplet_ids.yml
+
+# Add new list of droplets to firewall
+- name: "Add droplets to firewall"
+  include: add_droplets_to_firewall.yml

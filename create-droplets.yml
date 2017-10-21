@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# USAGE: ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/ --skip-tags "pause"
+# USAGE: ansible-playbook -vvv create-droplets.yml -i do_dynamic --skip-tags "pause"
 ---
 ##############################################################################
 # file: create-droplets.yml
@@ -8,19 +8,19 @@
 # Run with:
 #
 # Flush dynamic inventory cache:
-# ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/ --flush-cache
+# ansible-playbook -vvv create-droplets.yml -i do_dynamic --flush-cache
 #
 # DRY RUN(with pause):
-# ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/ --check
+# ansible-playbook -vvv create-droplets.yml -i do_dynamic --check
 #
 # REAL RUN(w/o pause):
-# ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/ --skip-tags "pause"
+# ansible-playbook -vvv create-droplets.yml -i do_dynamic --skip-tags "pause"
 #
 # TAG LOOKUP:
-# ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/ --tag lookup
+# ansible-playbook -vvv create-droplets.yml -i do_dynamic --tag lookup
 #
 # REAL RUN:
-# ansible-playbook -vvv create-droplets.yml -i ./inventory-marvel-dyninv/
+# ansible-playbook -vvv create-droplets.yml -i do_dynamic
 #
 ##############################################################################
 
@@ -106,6 +106,16 @@
     - name: Wait for port 22 to become available.
       local_action: "wait_for port=22 host={{ inventory_hostname }}"
 
-    - name: Install tcpdump.
-      yum: name=tcpdump state=present
+    - name: upgrade all packages
+      dnf:
+        name: "*"
+        state: latest
 
+    - name: 'dnf install -y python2 ansible python2-dnf libselinux-python'
+      dnf: name={{item}} state=present
+      with_items:
+        - python2
+        - ansible
+        - python2-dnf
+        - libselinux-python
+        - tcpdump

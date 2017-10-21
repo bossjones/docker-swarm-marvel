@@ -1,0 +1,131 @@
+---
+
+#  |2.2.3|  using virtualenv: docker-swarm-marvel2  hyenatop in ~/dev/bossjones/docker-swarm-marvel
+# ± |feature-inital U:6 ?:1 ✗| → jq -r '[.msg[].droplet| {name:.name, id:.id, ip_address:.ip_address}]' < ./static/droplet_creation_response.json
+# [
+#   {
+#     "name": "baxter",
+#     "id": 67316638,
+#     "ip_address": "45.55.147.156"
+#   }
+# ]
+
+# NOTE: don't use this, lets make our own call, that pulls back all instances, parses for the ones we care about, and use that one instead
+
+# fact_new_droplet_name_ip_and_id
+
+# /v2/firewalls/$FIREWALL_ID/droplets
+
+# matching_droplet_ids_only
+
+################################################################################################################################################
+# Filter ids out into a small array that we'll use to create the json payload to add droplets to the firewall
+# - name: "CREATE ids_to_add_to_firewall fact with empty array"
+#   set_fact: ids_to_add_to_firewall="[]"
+#   check_mode: no
+#   tags:
+#     - lookup
+#     - debug
+#     - do_lookup
+#     - set_fact
+
+# - name: "POPULATE ids_to_add_to_firewall fact"
+#   set_fact: ids_to_add_to_firewall="{{ids_to_add_to_firewall}} + ['{{ item.id }}']"
+#   check_mode: no
+#   with_items:
+#     - "{{ fact_new_droplet_name_ip_and_id }}"
+
+# - name: 'PRINT ids_to_add_to_firewall'
+#   debug:
+#     msg: "{{ ids_to_add_to_firewall }}"
+#   tags:
+#     - lookup
+#     - debug
+#     - do_lookup
+#     - ids_to_add_to_firewall
+
+################################################################################################################################################
+# Create json playload that will be used in api call to /v2/firewalls/$FIREWALL_ID/droplets
+- name: 'Set {{ playbook_dir }}/static/add_droplets_to_firewall_payload.json'
+  template: src={{role_path}}/templates/add_droplets_to_firewall_payload.json.j2 dest={{ playbook_dir }}/static/add_droplets_to_firewall_payload.json
+  vars:
+    matching_droplet_ids_only: "{{ matching_droplet_ids_only }}"
+  delegate_to: localhost
+
+- name: '/bin/cat {{ playbook_dir }}/static/add_droplets_to_firewall_payload.json'
+  shell: "/bin/cat {{ playbook_dir }}/static/add_droplets_to_firewall_payload.json"
+  register: rendered_add_droplets_to_firewall_payload
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - rendered_add_droplets_to_firewall_payload
+
+- name: "PRINT rendered_add_droplets_to_firewall_payload"
+  debug:
+    msg: "{{ rendered_add_droplets_to_firewall_payload.stdout }}"
+  when: rendered_add_droplets_to_firewall_payload is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - rendered_add_droplets_to_firewall_payload
+
+
+################################################################################################################################################
+
+# TODO: Skipping currently, cause it just doesn't work
+- name: Digital Ocean | Add droplets to firewall
+  uri:
+    url: "https://api.digitalocean.com/v2/firewalls/{{fact_existing_firewall_id}}/droplets"
+    HEADER_Authorization: Bearer {{ lookup('env','DIGITALOCEAN_ACCESS_TOKEN') }}
+    # No response body will be sent back, but the response code will indicate success. Specifically, the response code will be a 204, which means that the action was successful with no returned body data.
+    status_code: 204
+    body_format: json
+    method: POST
+    body: "{{ lookup('file', playbook_dir + '/static/add_droplets_to_firewall_payload.json') }}"
+  register: add_droplet_to_firewall_response
+
+- name: 'Set {{ playbook_dir }}/static/droplets_response.json'
+  template: src={{role_path}}/templates/generic_json.json.j2 dest={{ playbook_dir }}/static/droplets_response.json
+  vars:
+    # NOTE: This gets rid of unicode characters inside of the json doc
+    generic_json: "{{ add_droplet_to_firewall_response | to_nice_json }}"
+  delegate_to: localhost
+
+- name: '/bin/cat {{ playbook_dir }}/static/droplets_response.json'
+  shell: "/bin/cat {{ playbook_dir }}/static/droplets_response.json"
+  register: droplets_response
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplets_response
+
+- name: "PRINT droplets_response"
+  debug:
+    msg: "{{ droplets_response.stdout }}"
+  when: droplets_response is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplets_response
+
+- name: "PRINT add_droplet_to_firewall_response"
+  debug:
+    msg: "{{ add_droplet_to_firewall_response }}"
+  when: add_droplet_to_firewall_response is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - add_droplet_to_firewall_response
+
+##############################################################

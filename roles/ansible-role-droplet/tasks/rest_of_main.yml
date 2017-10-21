@@ -135,6 +135,15 @@
 #     ansible_host: "{{ item.ip_address }}"
 #     ansible_ssh_host: "{{ item.ip_address }}"
 #     ansible_python_interpreter: python
+
+- name: Add new host to our inventory.
+  with_items: "{{fact_new_droplet_name_ip_and_id}}"
+  add_host:
+    name: "{{ item.ip_address }}"
+    groups: "{{ droplet_groups }}"
+    ansible_python_interpreter: python3
+  when: item.ip_address is defined
+
 ##########################################################################################
 # - local_action:
 #     module: gcdns_record
