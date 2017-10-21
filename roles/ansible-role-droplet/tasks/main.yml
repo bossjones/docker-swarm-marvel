@@ -16,4 +16,8 @@
 # - include: rest_of_main.yml
 #   when: not grep.stdout
 
-- include: firewall.yml
+- name: "Lets get all digital ocean ssh keys"
+  include: get_ssh_keys.yml
+
+# - name: "Run firewall"
+#   include: firewall.yml

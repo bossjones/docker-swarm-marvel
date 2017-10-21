@@ -1,0 +1,117 @@
+---
+
+# ---------------
+# source: https://github.com/holms/ansible-coreos/blob/a37d7e493ff3712d4c4155cc45044abd655bbbec/roles/coreos/tasks/do.yml
+- name: Digital Ocean | Get ssh key id's
+  uri:
+    url: "https://api.digitalocean.com/v2/account/keys"
+    HEADER_Authorization: Bearer {{ lookup('env','DIGITALOCEAN_ACCESS_TOKEN') }}
+    status_code: 200
+  register: ssh_keys_response
+
+- name: 'Set {{ playbook_dir }}/static/do_ssh_keys.json'
+  template: src={{role_path}}/templates/generic_json.json.j2 dest={{ playbook_dir }}/static/do_ssh_keys.json
+  vars:
+    # NOTE: This gets rid of unicode characters inside of the json doc
+    generic_json: "{{ ssh_keys_response | to_nice_json }}"
+  delegate_to: localhost
+
+- name: '/bin/cat {{ playbook_dir }}/static/do_ssh_keys.json'
+  shell: "/bin/cat {{ playbook_dir }}/static/do_ssh_keys.json"
+  register: do_ssh_keys
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - do_ssh_keys
+
+- name: "PRINT do_ssh_keys"
+  debug:
+    msg: "{{ do_ssh_keys.stdout }}"
+  when: do_ssh_keys is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - do_ssh_keys
+
+##############################################################
+
+# source: https://stackoverflow.com/questions/31895602/ansible-filter-a-list-by-its-attributes
+
+#  |2.2.3|  using virtualenv: docker-swarm-marvel2  hyenatop in ~/dev/bossjones/docker-swarm-marvel
+# ± |feature-inital U:2 ?:1 ✗| → jq -r '[.msg.json.ssh_keys[].id ]' < ./static/do_ssh_keys.json
+# [
+#   27133,
+#   27134,
+#   27135,
+#   972901,
+#   4194108
+# ]
+
+- name: "jq -r '[.msg.json.ssh_keys[].id ]' < {{ playbook_dir }}/static/do_ssh_keys.json"
+  shell: >
+    jq -r '[.msg.json.ssh_keys[].id ]' < {{ playbook_dir }}/static/do_ssh_keys.json
+  register: jq_ssh_key_ids_only
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - jq_ssh_key_ids_only
+
+# source: https://stackoverflow.com/questions/31895602/ansible-filter-a-list-by-its-attributes
+- name: 'PRINT jq_ssh_key_ids_only.stdout BY ITEM'
+  debug:
+    msg: "{{ item }}"
+  with_items: "{{ jq_ssh_key_ids_only.stdout }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - jq_ssh_key_ids_only
+
+- name: "CREATE fact_jq_ssh_key_ids_only fact with empty array"
+  set_fact: fact_jq_ssh_key_ids_only="[]"
+  check_mode: no
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - set_fact
+    - doctl_ssh_keys
+
+- name: "POPULATE fact_jq_ssh_key_ids_only fact"
+  set_fact: fact_jq_ssh_key_ids_only="{{fact_jq_ssh_key_ids_only}} + ['{{ item }}']"
+  check_mode: no
+  with_items:
+    - "{{ jq_ssh_key_ids_only.stdout | from_json }}"
+
+- name: 'PRINT fact_jq_ssh_key_ids_only'
+  debug:
+    msg: "{{ fact_jq_ssh_key_ids_only }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - fact_jq_ssh_key_ids_only
+
+# TASK [ansible-role-droplet : PRINT fact_jq_ssh_key_ids_only] *******************
+# task path: /Users/malcolm/dev/bossjones/docker-swarm-marvel/roles/ansible-role-droplet/tasks/get_ssh_keys.yml:96
+# ok: [localhost] => {
+#     "msg": [
+#         "27133",
+#         "27134",
+#         "27135",
+#         "972901",
+#         "4194108"
+#     ]
+# }
+
+- name: pause to see that everything is good
+  pause: minutes=1
