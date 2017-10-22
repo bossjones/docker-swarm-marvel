@@ -134,6 +134,7 @@ bootstrap-user-role:
 create-droplets:
 	@ansible-playbook -vvv create-droplets.yml -i do_dynamic --skip-tags "pause"
 
+
 # RUN ORDER:
 # 1. create-droplets
 # 2. bootstrap-user-role
