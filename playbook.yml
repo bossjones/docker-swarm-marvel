@@ -4,19 +4,30 @@
 # dnf upgrade -y
 # dnf install -y python2 ansible python2-dnf libselinux-python
 
-- hosts: latveria
+- hosts: swarm
   become: yes
   become_method: sudo
   gather_facts: yes
   vars_files:
     - vars/main.yml
+  vars:
+    theme: "powerline-plain"
+    repository: https://github.com/revans/bash-it.git
+    version: master
+    aliases:
+      - general
+    plugins:
+      - base
+      - history
+    completions:
+      - git
   roles:
     - { role: singleplatform-eng.users }
     - { role: bossjones-ipv6 }
     - { role: ksylvan.docker }
-    - { role: motd }
     - { role: bossjones-firewalld }
     - { role: bossjones.common }
+    - { role: motd }
     # - role: dirn.pyenv
     #   pyenv_runcom: ~/.zshrc
     #   pyenv_versions:
@@ -30,6 +41,23 @@
     #   pyenv_project_versions:
     #     - 3.4.3
     #     - pypy3-2.4.0
+
+
+    # - role: bossjones-firewalld
+    # - role: mjanser.powerline
+    # - role: joshualund.golang
+    # - role: common
+    #   theme: "powerline-plain"
+    #   repository: https://github.com/revans/bash-it.git
+    #   version: master
+    #   aliases:
+    #     - general
+    #   plugins:
+    #     - base
+    #     - history
+    #   completions:
+    #     - git
+    # - role: bossjones-cli-tools
 
   pre_tasks:
 

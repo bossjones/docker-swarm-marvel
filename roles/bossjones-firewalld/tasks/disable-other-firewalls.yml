@@ -1,6 +1,6 @@
 ---
 - name: Check firewalld package is installed (on RHEL).
-  shell: yum list installed firewalld
+  shell: dnf list installed firewalld
   register: firewalld_installed
   ignore_errors: true
   when: ansible_os_family == "Fedora" and firewall_disable_firewalld

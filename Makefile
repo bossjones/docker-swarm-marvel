@@ -126,7 +126,15 @@ bootstrap-ansible-latveria:
 	ansible latveria -i inventory-marvel/ -m raw -a "set -x; dnf install -y python2 ansible python2-dnf libselinux-python" -f 10
 
 bootstrap-playbook:
-	@ansible-playbook -vvv playbook.yml -i ./inventory-marvel/ -f 10 -u pi
+	@ansible-playbook -vvv playbook.yml -i ./inventory-marvel-dyninv/ -f 10 -u pi
 
 bootstrap-user-role:
-	@ansible-playbook -vvv user-role.yml -i ./inventory-marvel/ -f 10 -u root
+	@ansible-playbook -vvv user-role.yml -i ./inventory-marvel-dyninv/ -f 10 -u root
+
+create-droplets:
+	@ansible-playbook -vvv create-droplets.yml -i do_dynamic --skip-tags "pause"
+
+# RUN ORDER:
+# 1. create-droplets
+# 2. bootstrap-user-role
+# 3. bootstrap-playbook

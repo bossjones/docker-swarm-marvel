@@ -1,10 +1,20 @@
 ---
 #Installing Packages
+- name: remove | vim-enhanced
+  become: yes
+  dnf:
+    name: "{{ item }}"
+    state: absent
+  ignore_errors: true
+  with_items:
+    - vim-enhanced
+
 - name: install | installing packages
   become: yes
-  yum:
+  dnf:
     name: "{{ item }}"
     state: latest
+  ignore_errors: true
   with_items:
     - tcl
     - vim-enhanced

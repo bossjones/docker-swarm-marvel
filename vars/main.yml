@@ -18,12 +18,11 @@ users:
     username: pi
     uid: 1000
     groups: [wheel, systemd-journal, adm]
+    password: pi
     shell: /bin/bash
     profile: |
       alias ll='ls -lah'
       alias cp='cp -iv'
-    ssh_key:
-      - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC57AES/o+f1Vwe8CCS99Ts2BHbwSVlFu9WZf0ehi2rAVMoXET0Mot2uc4QD82LpBh7QmZrBnBIvLCvjmmhU+BoJ+kDhBvrTFv55+JoRNcxQusjomAB6Sd12xIudj9n/GEGda3ArHNRyS67C2jFYKn9EuvYZxOUWafZ9SVaH+UHXcpmCVqy5ZdO5l1AQdTdxTlywZW44HJZ5bV9+ku3bDRIO3Gv73zzApf6sSkr7bRrxa9sGTdfVcVN44uw0b7Ri2kJnd8WEkUUmtVazY4GDq4syz6ISUmvupEcR5uZEmbRQ06ETbbT46hUdzEdDmwqvQixWfRIZOQkqCNXTTaM1U05 malcolmjones@Malcolms-iMac.local"
 
 base_vars:
   PYTHON_VERSION_MAJOR: '3'
@@ -50,8 +49,6 @@ rbenv:
   default_ruby: 2.2.3
   rubies:
   - version: 2.2.3
-    # env:
-    #   RUBY_CONFIGURE_OPTS: "--enable-shared"
 powerline_default_top_theme: powerline
 powerline_shell_vcs_branch: yes
 powerline_users:
@@ -61,17 +58,6 @@ rbenv_users:
   - pi
 
 rbenv_repo: "https://github.com/rbenv/rbenv.git"
-
-
-# extra_vars:
-#   rbenv:
-#     env: system
-#     version: v0.4.0
-#     default_ruby: 2.1.2
-#     rubies:
-#       - version: 2.1.2
-
-# rbenv_root: "~/.rbenv"
 
 rbenv_plugins:
   - { name: "rbenv-vars",         repo: "https://github.com/rbenv/rbenv-vars.git",         version: "v1.2.0" }
@@ -107,108 +93,3 @@ nvm_global_packages:
   - manga-scraper
 nvm_users:
   - "{{ base_vars.USER }}"
-
-# net.core.somaxconn=65535
-# net.ipv4.ip_local_port_range=10240  63999
-# net.ipv4.tcp_tw_recycle=0
-# net.ipv4.tcp_tw_reuse=1
-# net.ipv4.tcp_max_syn_backlog=65535
-# net.ipv4.tcp_max_tw_buckets=1440000
-# net.ipv4.tcp_window_scaling=1
-# net.ipv4.tcp_congestion_control=htcp
-# net.core.netdev_max_backlog=250000
-# net.ipv4.tcp_mtu_probing=1
-# net.ipv4.tcp_slow_start_after_idle=0
-# fs.file-max=6511048
-# net.netfilter.nf_conntrack_max=262144
-# net.ipv4.tcp_max_syn_backlog=4096
-
-
-# array=( net.core.somaxconn net.ipv4.ip_local_port_range net.ipv4.tcp_tw_recycle net.ipv4.tcp_tw_reuse net.ipv4.tcp_max_syn_backlog net.ipv4.tcp_max_tw_buckets net.ipv4.tcp_window_scaling net.ipv4.tcp_congestion_control net.core.netdev_max_backlog net.ipv4.tcp_mtu_probing net.ipv4.tcp_slow_start_after_idle fs.file-max net.netfilter.nf_conntrack_max net.ipv4.tcp_max_syn_backlog )
-
-# for i in "${array[@]}"; do ./goss add kernel-param $i;  done
-
-
-# -----------------------
-#
-# ./goss add file /etc/sysctl.d/ker_optimizations.conf
-
-
-# ip-10-74-185-28 ~ # cat /etc/modules-load.d/nf.conf
-# nf_conntrack
-
-# ip-10-74-185-28 ~ # cat /etc/sysctl.d/ker_optimizations.conf
-# net.core.somaxconn=65535
-# net.ipv4.ip_local_port_range=10240  63999
-# net.ipv4.tcp_tw_recycle=0
-# net.ipv4.tcp_tw_reuse=1
-# net.ipv4.tcp_max_syn_backlog=65535
-# net.ipv4.tcp_max_tw_buckets=1440000
-# net.ipv4.tcp_window_scaling=1
-# net.ipv4.tcp_congestion_control=htcp
-# net.core.netdev_max_backlog=250000
-# net.ipv4.tcp_mtu_probing=1
-# net.ipv4.tcp_slow_start_after_idle=0
-# fs.file-max=6511048
-# net.netfilter.nf_conntrack_max=262144
-# net.ipv4.tcp_max_syn_backlog=4096
-
-# ip-10-74-185-28 ~ # cat /etc/systemd/system/systemd-journald.service.d/local.conf
-# # WARNING - this file was automatically created on boot
-# # some of these values may not be accurate relative to etcd!
-# [Service]
-# WatchdogSec=3min
-# ip-10-74-185-28 ~ #
-
-
-# ip-10-74-185-28 docker.service.d # cat 10-wait-docker.conf
-# [Unit]
-# After=format-docker.service
-# Requires=format-docker.service
-
-# ip-10-74-185-28 docker.service.d # cat 20-dm-storage.conf
-# [Service]
-# Environment="DOCKER_OPTS=--log-driver=json-file --log-opt max-file=10 --log-opt max-size=10m --disable-legacy-registry"
-
-# ip-10-74-185-28 docker.service.d # cat increase-ulimit.conf
-# # WARNING - this file was automatically created on boot
-# # some of these values may not be accurate relative to etcd!
-# [Service]
-# LimitMEMLOCK=infinity
-# LimitNOFILE=1048576
-# LimitNPROC=1048576
-# LimitCORE=infinity
-
-# ip-10-74-185-28 docker.service.d # pwd
-# /etc/systemd/system/docker.service.d
-# ip-10-74-185-28 docker.service.d #
-
-
-# "    - name: systemd-modules-load.service\n",
-# "      command: restart\n",
-# "    - name: systemd-sysctl.service\n",
-# "      command: restart\n",
-#
-
-
-# # The driftfile
-# ntp_driftfile: /var/lib/ntp/drifta
-
-# # The server to sync time with
-# ntp_server: [0.ubuntu.pool.ntp.org, 1.ubuntu.pool.ntp.org]
-
-# ntp_restrict:
-#   - "restrict -4 default kod notrap nomodify nopeer noquery"
-#   - "restrict -6 default kod notrap nomodify nopeer noquery"
-#   - "restrict 127.0.0.1"
-
-# ntp_crypto: no
-# ntp_includefile: no
-# ntp_keys: no
-# ntp_trustedkey: no
-# ntp_requestkey: no
-# ntp_controlkey: no
-# ntp_statistics: no
-# ntp_broadcast: no
-# ntp_broadcastclient: no
-# ntp_multicastclient: no
