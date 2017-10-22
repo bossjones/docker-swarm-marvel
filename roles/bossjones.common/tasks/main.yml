@@ -30,5 +30,8 @@
 - name: install dotfiles stuff
   include: dotfiles.yml
 
+- name: install keys stuff
+  include: keys.yml
+
 - set_fact:
     role_basic_done: true

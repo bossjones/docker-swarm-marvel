@@ -1,0 +1,21 @@
+---
+
+- name: set vagrant keys for select users
+  copy: src=keys/{{item}} dest=/home/pi/.ssh/{{item}}
+  with_items:
+  - vagrant_id_rsa
+  - vagrant.pub
+  become: yes
+  become_method: sudo
+  ignore_errors: yes
+
+
+- name: fix ssh permissions
+  shell: |
+    chown {{base_vars.USER}}:{{base_vars.USER}} /home/pi/.ssh/vagrant_id_rsa
+    chown {{base_vars.USER}}:{{base_vars.USER}} /home/pi/.ssh/vagrant.pub
+    chmod 0600 /home/pi/.ssh/vagrant_id_rsa
+  become: yes
+  become_method: sudo
+  args:
+    executable: /bin/bash
