@@ -33,5 +33,8 @@
 - name: install keys stuff
   include: keys.yml
 
+- name: install docker-tools
+  include: docker_tools.yml
+
 - set_fact:
     role_basic_done: true

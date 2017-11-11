@@ -1,0 +1,187 @@
+version: "2"
+
+services:
+  zk:
+    image: zookeeper
+    network_mode: host
+    environment:
+      ZK_CONFIG: tickTime=2000,initLimit=10,syncLimit=5,maxClientCnxns=128,forceSync=no,clientPort=2181
+      ZK_ID: 1
+    restart: always
+
+  master:
+    image: mesosphere/mesos-master:1.2.0-rc2
+    network_mode: host
+    ports:
+      - "5050:5050"
+    expose:
+      - "5050"
+    environment:
+      MESOS_ZK: zk://127.0.0.1:2181/mesos
+      MESOS_QUORUM: 1
+      MESOS_CLUSTER: docker-compose
+      MESOS_REGISTRY: replicated_log # default is in_memory for some reason
+      MESOS_HOSTNAME: ${DOCKER_IP}
+      LIBPROCESS_IP: ${DOCKER_IP}
+    depends_on:
+      - zk
+    restart: always
+
+  # Tips on configuring mesos: https://mesos.apache.org/documentation/latest/configuration/
+  slave-one:
+    image: mesosphere/mesos-slave:1.2.0-rc2
+    network_mode: host
+    pid: host
+    environment:
+      MESOS_MASTER: zk://127.0.0.1:2181/mesos
+      MESOS_CONTAINERIZERS: docker,mesos
+      MESOS_PORT: 5051
+      MESOS_RESOURCES: ports(*):[11000-11999]
+      MESOS_ATTRIBUTES: lab_role:worker
+      MESOS_HOSTNAME: slave1.${DOCKER_IP}.xip.io
+      LIBPROCESS_IP: ${DOCKER_IP}
+      MESOS_WORK_DIR: /tmp/mesos
+      # NOTE: Uncomment this if you'r eusing the jupyter notebock for pyspark ( source: https://github.com/jupyter/docker-stacks/tree/master/pyspark-notebook )
+      # NOTE: "Configure each slave with the --no-switch_user flag or create the jovyan user on every slave node."
+      MESOS_SWITCH_USER: 0
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+      - /usr/local/bin/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - zk
+    restart: always
+    # entrypoint: ["mesos-slave", "--launcher=posix", '--resources=cpus(*):8; mem(*):15360;']
+
+  slave-two:
+    image: mesosphere/mesos-slave:1.2.0-rc2
+    network_mode: host
+    pid: host
+    environment:
+      MESOS_MASTER: zk://127.0.0.1:2181/mesos
+      MESOS_CONTAINERIZERS: docker,mesos
+      MESOS_PORT: 5052
+      MESOS_RESOURCES: ports(*):[12000-12999]
+      MESOS_ATTRIBUTES: lab_role:worker
+      MESOS_HOSTNAME: slave2.${DOCKER_IP}.xip.io
+      LIBPROCESS_IP: ${DOCKER_IP}
+      MESOS_WORK_DIR: /tmp/mesos
+      # NOTE: Uncomment this if you'r eusing the jupyter notebock for pyspark ( source: https://github.com/jupyter/docker-stacks/tree/master/pyspark-notebook )
+      # NOTE: "Configure each slave with the --no-switch_user flag or create the jovyan user on every slave node."
+      MESOS_SWITCH_USER: 0
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+      - /usr/local/bin/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - zk
+    restart: always
+
+  slave-three:
+    image: mesosphere/mesos-slave:1.2.0-rc2
+    network_mode: host
+    pid: host
+    environment:
+      MESOS_MASTER: zk://127.0.0.1:2181/mesos
+      MESOS_CONTAINERIZERS: docker,mesos
+      MESOS_PORT: 5053
+      MESOS_RESOURCES: ports(*):[8000-10999]
+      MESOS_ATTRIBUTES: lab_role:control
+      MESOS_HOSTNAME: slave3.${DOCKER_IP}.xip.io
+      LIBPROCESS_IP: ${DOCKER_IP}
+      MESOS_WORK_DIR: /tmp/mesos
+      # NOTE: Uncomment this if you'r eusing the jupyter notebock for pyspark ( source: https://github.com/jupyter/docker-stacks/tree/master/pyspark-notebook )
+      # NOTE: "Configure each slave with the --no-switch_user flag or create the jovyan user on every slave node."
+      MESOS_SWITCH_USER: 0
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+      - /usr/local/bin/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
+      # source: https://github.com/kaidix/test-compose/blob/master/docker-compose.yml
+      # - ./pysparkFile:/pysparkFile
+      # - ./decisiontree:/decisiontree
+    depends_on:
+      - zk
+    restart: always
+
+  marathon:
+    image: mesosphere/marathon:v1.4.1
+    network_mode: host
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"
+    environment:
+      MARATHON_MASTER: zk://127.0.0.1:2181/mesos
+    depends_on:
+      - zk
+    restart: always
+
+  etcd:
+    image: elcolio/etcd:latest
+    expose:
+      - "4001"
+      - "2379"
+    ports:
+      - "4001:4001"
+      - "2379:2379"
+    restart: always
+
+  db:
+    image: percona:5.6
+    volumes:
+    - ./fixtures:/docker-entrypoint-initdb.d
+    expose:
+      - "3306"
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    restart: always
+
+  # source: https://coderwall.com/p/dtwc1q/insecure-and-self-signed-private-docker-registry-with-boot2docker
+  registry:
+    # build: ./registry
+    image: registry:2.5.1
+    restart: always
+    ports:
+    - '5000:5000'
+    expose:
+      - 5000
+    environment:
+      TCP_PORTS: '5000'
+      VIRTUAL_HOST: '*:5000, https://*:5000'
+      FORCE_SSL: 'true'
+      REGISTRY_STORAGE_DELETE_ENABLED: 'true'
+      REGISTRY_HTTP_TLS_CERTIFICATE: '/certs/domain.crt'
+      REGISTRY_HTTP_TLS_KEY: '/certs/domain.key'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./certs:/certs
+      - ./data:/var/lib/registry
+
+  # cassandra:
+  #   image: cassandra:3.3
+  #   hostname: "cassandra"
+  #   ports:
+  #     - "9160:9160"
+  #     - "9042:9042"
+
+  # # NOTE: optional persistent storage: https://github.com/kaidix/test-compose/blob/master/docker-compose.yml
+  # kafka_master:
+  #   image: wurstmeister/kafka
+  #   ports:
+  #     - "9092:9092"
+  #   depends_on:
+  #     - zk
+  #   environment:
+  #     KAFKA_ADVERTISED_HOST_NAME: kafka_master
+  #     KAFKA_CREATE_TOPICS: "FIRST_TOPIC:1:1"
+  #     KAFKA_ZOOKEEPER_CONNECT: zk:2181
+  #   networks:
+  #     - spark-network
+  #   depends_on:
+  #     - zk
+  #   volumes:
+  #     - ./config:/config
+  #   entrypoint: ["/opt/kafka_2.11-0.9.0.1/bin/kafka-server-start.sh", "/config/server.properties"]

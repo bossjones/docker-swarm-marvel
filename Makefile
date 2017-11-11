@@ -103,6 +103,7 @@ install-virtualenv-osx:
 	ARCHFLAGS="-arch x86_64" LDFLAGS="-L/usr/local/opt/openssl/lib" CFLAGS="-I/usr/local/opt/openssl/include" pip install --ignore-installed --pre "https://github.com/pradyunsg/pip/archive/hotfix/9.0.2.zip#egg=pip"
 	ARCHFLAGS="-arch x86_64" LDFLAGS="-L/usr/local/opt/openssl/lib" CFLAGS="-I/usr/local/opt/openssl/include" pip install --upgrade setuptools==36.0.1 wheel==0.29.0
 	ARCHFLAGS="-arch x86_64" LDFLAGS="-L/usr/local/opt/openssl/lib" CFLAGS="-I/usr/local/opt/openssl/include" pip install -r requirements.txt
+	ARCHFLAGS="-arch x86_64" LDFLAGS="-L/usr/local/opt/openssl/lib" CFLAGS="-I/usr/local/opt/openssl/include" pip install -r requirements_test.txt
 
 install-virtualenv:
 	pip install -r requirements.txt
@@ -134,6 +135,18 @@ bootstrap-user-role:
 create-droplets:
 	@ansible-playbook create-droplets.yml -i do_dynamic --skip-tags "pause"
 
+autossh-baxter:
+	@autossh -M 0 -F ./ssh_config pi@baxter
+
+autossh-latveria:
+	@autossh -M 0 -F ./ssh_config pi@latveria
+
+autossh-avengers-tower:
+	@autossh -M 0 -F ./ssh_config pi@avengers-tower
+
+scp-do-docker-swarm-vbox-lab:
+	cd ~/dev/bossjones
+	scp -F ~/dev/bossjones/docker-swarm-marvel/ssh_config -r ~/dev/bossjones/do-docker-swarm-vbox-lab/ pi@avengers-tower:do-docker-swarm-vbox-lab/
 
 # RUN ORDER:
 # 1. create-droplets

@@ -79,3 +79,12 @@ alias gw='git whatchanged'
 
 
 docker-clean() { docker rm $(docker ps -a -q); docker rmi $(docker images | grep "^<none>" | awk '{print $3}'); }
+docker-volume-clean() { docker volume rm $(docker volume ls | grep local | awk '{print $2}' | xargs); }
+
+docker-containers-destroy() {
+  docker rm -vf $(docker ps -a -q)
+  echo "All Docker containers removed"
+
+  docker volume prune -f
+  echo "All Docker volumes removed"
+}

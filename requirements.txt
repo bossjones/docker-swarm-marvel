@@ -13,3 +13,4 @@ simplejson==3.10.0
 dopy
 yolk3k
 ipython
+termcolor

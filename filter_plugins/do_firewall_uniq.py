@@ -1,14 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# FIXME: Doesn't work currently
-
-# source:
-# https://stackoverflow.com/questions/29394535/convert-unicode-list-into-python-list
+# source: https://stackoverflow.com/questions/29394535/convert-unicode-list-into-python-list
 import json
 import pprint
-# from ansible import errors
-
 pp = pprint.PrettyPrinter(indent=4, width=80)
 
 def str_to_json(a_str):

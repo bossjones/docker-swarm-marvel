@@ -1,0 +1,71 @@
+---
+
+- name: 'install docker-machine'
+  shell: |
+    curl -L https://github.com/docker/machine/releases/download/v0.13.0/docker-machine-`uname -s`-`uname -m` >/tmp/docker-machine
+    chmod +x /tmp/docker-machine
+    sudo cp /tmp/docker-machine /usr/local/bin/docker-machine
+  become: yes
+  become_method: sudo
+  args:
+    executable: /bin/bash
+
+##########################################################################################
+# # manager
+# sudo firewall-cmd --add-port=2376/tcp --permanent && \
+# sudo firewall-cmd --add-port=2377/tcp --permanent && \
+# sudo firewall-cmd --add-port=7946/tcp --permanent && \
+# sudo firewall-cmd --add-port=7946/udp --permanent && \
+# sudo firewall-cmd --add-port=4789/udp --permanent && \
+# sudo firewall-cmd --reload && \
+# sudo systemctl restart docker
+
+- name: 'enable firewalld rules for swarm-manager'
+  firewalld:
+    port: "{{item.value.port}}/{{item.value.protocol}}"
+    zone: public
+    permanent: true
+    state: enabled
+  tags:
+  - firewalld
+  with_dict:
+  - { port: 2376, protocol: tcp }
+  - { port: 2377, protocol: tcp }
+  - { port: 7946, protocol: tcp }
+  - { port: 7946, protocol: udp }
+  - { port: 4789, protocol: udp }
+
+# FIXME: Need to follow up and implement these steps as well ( 10/22/2017 )
+# sudo firewall-cmd --reload && \
+# sudo systemctl restart docker
+##########################################################################################
+
+##########################################################################################
+# # worker
+# sudo firewall-cmd --add-port=2376/tcp --permanent && \
+# sudo firewall-cmd --add-port=7946/tcp --permanent && \
+# sudo firewall-cmd --add-port=7946/udp --permanent && \
+# sudo firewall-cmd --add-port=4789/udp --permanent && \
+# sudo firewall-cmd --reload && \
+# sudo systemctl restart docker
+
+- name: 'enable firewalld rules for swarm worker'
+  firewalld:
+    port: "{{item.value.port}}/{{item.value.protocol}}"
+    zone: public
+    permanent: true
+    state: enabled
+  tags:
+  - firewalld
+  with_dict:
+  - { port: 2376, protocol: tcp }
+  - { port: 7946, protocol: tcp }
+  - { port: 7946, protocol: udp }
+  - { port: 4789, protocol: udp }
+
+# FIXME: Need to follow up and implement these steps as well FOR WORKERS ( 10/22/2017 )
+# sudo firewall-cmd --reload && \
+# sudo systemctl restart docker
+##########################################################################################
+
+# FIXME: ALSO NEED A STEP TO ACTUALLY ENABLE UDP ALL ON THE DIGITAL OCEAN FIREWALL LEVEL AS WELL!!! ( 10/22/2017 )

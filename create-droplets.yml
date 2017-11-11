@@ -29,7 +29,7 @@
   gather_facts: false
   # vars_prompt:
   # - name: "elb_type"
-  #   prompt: "Type of load balancer we want to create and add to proxy in ethos cluster"
+  #   prompt: "Type of load balancer we want to create and add to proxy in boss cluster"
   #   private: no
   # - name: "app_name"
   #   prompt: "Name of app, must match value in group_vars aws_elb_app_vars"
@@ -41,7 +41,7 @@
   #   prompt: "Region to put elb in. options [ue1, uw1, uw2]"
   #   private: no
   # - name: "service_type"
-  #   prompt: "Enter a service type for this elb. options [ethos_v2, ethos_v3, generic]"
+  #   prompt: "Enter a service type for this elb. options [boss_v2, boss_v3, generic]"
   #   private: no
   # vars_files:
   #   - "./vars/aws_generic.yml"

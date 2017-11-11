@@ -149,5 +149,6 @@
     "roles/singleplatform-eng.users": "explorerExcludedFiles",
     "ansible-digital_ocean.cache": "explorerExcludedFiles",
     "steps_dont_commit": "explorerExcludedFiles"
-  }
+  },
+  "python.pythonPath": "~/.virtualenvs/docker-swarm-marvel2/bin/python2"
 }
