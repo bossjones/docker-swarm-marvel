@@ -1,0 +1,121 @@
+# -*- coding: utf-8 -*-
+# USAGE: ansible-playbook -vvv create-droplets.yml -i do_dynamic --skip-tags "pause"
+---
+##############################################################################
+# file: create-droplets.yml
+# Creates digital ocean droplet
+#
+# Run with:
+#
+# Flush dynamic inventory cache:
+# ansible-playbook -vvv create-droplets.yml -i do_dynamic --flush-cache
+#
+# DRY RUN(with pause):
+# ansible-playbook -vvv create-droplets.yml -i do_dynamic --check
+#
+# REAL RUN(w/o pause):
+# ansible-playbook -vvv create-droplets.yml -i do_dynamic --skip-tags "pause"
+#
+# TAG LOOKUP:
+# ansible-playbook -vvv create-droplets.yml -i do_dynamic --tag lookup
+#
+# REAL RUN:
+# ansible-playbook -vvv create-droplets.yml -i do_dynamic
+#
+##############################################################################
+
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  # vars_prompt:
+  # - name: "elb_type"
+  #   prompt: "Type of load balancer we want to create and add to proxy in boss cluster"
+  #   private: no
+  # - name: "app_name"
+  #   prompt: "Name of app, must match value in group_vars aws_elb_app_vars"
+  #   private: no
+  # - name: "tier"
+  #   prompt: "AWS account tier"
+  #   private: no
+  # - name: "elb_region"
+  #   prompt: "Region to put elb in. options [ue1, uw1, uw2]"
+  #   private: no
+  # - name: "service_type"
+  #   prompt: "Enter a service type for this elb. options [boss_v2, boss_v3, generic]"
+  #   private: no
+  # vars_files:
+  #   - "./vars/aws_generic.yml"
+  #   - "./vars/elb_vars/{{ app_name }}/elb_{{ app_name }}_{{ tier }}.yml"
+  roles:
+     - ansible-role-droplet
+
+  pre_tasks:
+
+    - name: Fail if Ansible is ancient
+      fail: msg="We need Ansible >= 2.0. Please update your kit. 'pip install -U Ansible'"
+      when: ansible_version.major < 2
+      tags:
+        - always
+
+    - name: Include vars from local-configure.yml if found
+      include_vars: "{{ item }}"
+      with_first_found:
+       - local-configure.yml
+       - null.yml
+
+    # --------------------- STEPS -------------------------------
+    # 1. Figure out which droplets exist already (?)
+    # 2. Find all ssh keys that we plan on using, put them in comma seperated form
+    # 3. Create the droplets that don't exist
+    # 4. Find a firewall that has already be defined by name
+    # 5. merge the firewall rules together w/ what exists, and what was just created, make sure it contains new ips and new droplet ids as well
+    # 6. (optional) At some point in the future, we'll need to create a smart prune task, that will remove stale ip addresses from firewall rules
+    # 7. Update firewall rules
+    # 8. Test ssh connectivity
+    # 9. Make sure this is done serially?
+
+    # ---------------
+    # source: https://github.com/holms/ansible-coreos/blob/a37d7e493ff3712d4c4155cc45044abd655bbbec/roles/coreos/tasks/do.yml
+    # - name: Digital Ocean | Get ssh key id's
+    #   uri:
+    #     url: "https://api.digitalocean.com/v2/account/keys"
+    #     HEADER_Authorization: Bearer {{ lookup('env','DIGITALOCEAN_ACCESS_TOKEN') }}
+    #     status_code: 200
+    #   register: ssh_keys
+
+# Afterwards, try to ssh and connect
+- hosts: do
+  remote_user: root
+  gather_facts: false
+
+  pre_tasks:
+
+    - name: Fail if Ansible is ancient
+      fail: msg="We need Ansible >= 2.0. Please update your kit. 'pip install -U Ansible'"
+      when: ansible_version.major < 2
+      tags:
+        - always
+
+    - name: Include vars from local-configure.yml if found
+      include_vars: "{{ item }}"
+      with_first_found:
+       - local-configure.yml
+       - null.yml
+
+  tasks:
+    - name: Wait for port 22 to become available.
+      local_action: "wait_for port=22 host={{ inventory_hostname }}"
+
+    - name: upgrade all packages
+      dnf:
+        name: "*"
+        state: latest
+
+    - name: 'dnf install -y python2 ansible python2-dnf libselinux-python'
+      dnf: name={{item}} state=present
+      with_items:
+        - python2
+        - ansible
+        - python2-dnf
+        - libselinux-python
+        - tcpdump

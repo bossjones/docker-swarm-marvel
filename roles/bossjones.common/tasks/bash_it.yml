@@ -1,0 +1,44 @@
+---
+# TODO: have bash_it run before this shell script
+- name: clone bash_it
+  git: repo=https://github.com/Bash-it/bash-it.git
+       dest="/home/{{base_vars.USER}}/.bash_it"
+       update=no
+       depth=1
+  become: "{{base_vars.USER}}"
+  become_user: "{{base_vars.USER}}"
+
+- name: Register home directory for {{ base_vars.USER }}
+  shell: >
+    getent passwd {{ base_vars.USER }} | cut -d: -f6
+  changed_when: false
+  register: linux_user_home
+
+- name: Register current login shell for {{ base_vars.USER }}
+  shell: >
+    getent passwd {{ base_vars.USER }} | cut -d: -f7
+  changed_when: false
+  register: linux_user_shell
+
+- name: Set facts
+  set_fact:
+    user_home: "{{ linux_user_home.stdout }}"
+    user_shell: "{{ linux_user_shell.stdout }}"
+
+- name: assert home directory is detected
+  assert: { that: user_home != "" }
+
+- name: assert current shell is detected
+  assert: { that: user_shell != "" }
+
+- name: "clone bash_it for {{ base_vars.USER }}"
+  git:
+    repo: "{{ repository }}"
+    dest: "{{ user_home }}/.bash_it"
+    version: "{{ version }}"
+  become: "{{ base_vars.USER }}"
+
+- name: "change shell to bash for {{ base_vars.USER }}"
+  command: "chsh -s /bin/bash {{ base_vars.USER }}"
+  become_user: root
+  when: user_shell != "/bin/bash"

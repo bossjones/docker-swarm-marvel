@@ -1,0 +1,73 @@
+configs:
+  ansible_user: pi
+  service_ports:
+  - ""
+  # FIXME: Dont commit this guy
+  whitelist_ip_cidrs:
+    ip_cidrs: []
+  datacenter_type: 'digitalocean'
+  all_tags:
+    - role:marvel-swarm-manager
+    - role:marvel-swarm-agent
+    - name:stark-tower
+    - name:avengers-tower
+    - name:necropolis
+    - name:baxter
+    - name:latveria
+    - region:nyc3
+    - cluster:swarm-marvel
+    - firewall:marvel-swarm-rules
+    - server:stark-tower
+    - server:necropolis
+    - server:baxter
+    - server:latveria
+    - server:avengers-tower
+  firewall_tag_name: firewall:marvel-swarm-rules
+  servers_to_find:
+    - name: avengers-tower
+      command: droplet
+      size_id: "8gb"
+      region_id: nyc3
+      image_id: "fedora-24-x64"
+      # TODO: Use these to create inbound rules for digitalocean firewall
+      firewall_inbound_links:
+        - avengers-tower
+        - latveria
+        - baxter
+      tag_names:
+        - cluster:swarm-marvel
+        - role:marvel-swarm-manager
+        - name:stark-tower
+        - region:nyc3
+
+    - name: latveria
+      command: droplet
+      size_id: "2gb"
+      region_id: nyc3
+      image_id: "fedora-24-x64"
+      # TODO: Use these to create inbound rules for digitalocean firewall
+      firewall_inbound_links:
+        - avengers-tower
+        - latveria
+        - baxter
+      tag_names:
+        - cluster:swarm-marvel
+        - role:marvel-swarm-agent
+        - name:latveria
+        - region:nyc3
+
+    - name: baxter
+      command: droplet
+      size_id: "1gb"
+      region_id: nyc3
+      image_id: "fedora-24-x64"
+      # TODO: Use these to create inbound rules for digitalocean firewall
+      firewall_inbound_links:
+        - avengers-tower
+        - latveria
+        - baxter
+      tag_names:
+        - cluster:swarm-marvel
+        - role:marvel-swarm-agent
+        - name:baxter
+        - region:nyc3

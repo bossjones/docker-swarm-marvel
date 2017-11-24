@@ -1,0 +1,21 @@
+---
+
+- name: "tag a resource; creating the tag if it does not exists {{ item }}"
+  debug:
+    msg: "{{ item }}"
+  when: do_tags_to_create is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - doctl_ssh_keys
+  with_items:
+    - "{{do_tags_to_create}}"
+
+- name: "tag a resource; creating the tag if it does not exists {{ item }}"
+  digital_ocean_tag:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "{{do_tags_to_create}}"
+  when: do_tags_to_create is defined

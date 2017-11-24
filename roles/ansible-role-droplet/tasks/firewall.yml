@@ -1,0 +1,737 @@
+# -*- coding: utf-8 -*-
+# USAGE: ansible-playbook test.yml -i ./inventory-marvel-dyninv/ --skip-tags "pause"
+---
+##############################################################################
+# file: test.yml
+# Creates digital ocean droplet
+#
+# Run with:
+#
+# Flush dynamic inventory cache:
+# ansible-playbook test.yml -i ./inventory-marvel-dyninv/ --flush-cache
+#
+# DRY RUN(with pause):
+# ansible-playbook test.yml -i ./inventory-marvel-dyninv/ --check
+#
+# REAL RUN(w/o pause):
+# ansible-playbook test.yml -i ./inventory-marvel-dyninv/ --skip-tags "pause"
+#
+# TAG LOOKUP:
+# ansible-playbook test.yml -i ./inventory-marvel-dyninv/ --tag lookup
+#
+# REAL RUN:
+# ansible-playbook test.yml -i ./inventory-marvel-dyninv/
+#
+##############################################################################
+
+# NOTE: We want to run this before AND after we create the new droplets
+- name: Digital Ocean | Get nodes
+  uri:
+    url: "https://api.digitalocean.com/v2/droplets"
+    HEADER_Authorization: Bearer {{ lookup('env','DIGITALOCEAN_ACCESS_TOKEN') }}
+    status_code: 200
+  register: droplet_nodes
+
+- name: 'Set {{ playbook_dir }}/static/droplets_response.json'
+  template: src={{role_path}}/templates/generic_json.json.j2 dest={{ playbook_dir }}/static/droplets_response.json
+  vars:
+    # NOTE: This gets rid of unicode characters inside of the json doc
+    generic_json: "{{ droplet_nodes | to_nice_json }}"
+  delegate_to: localhost
+
+# - name: "echo '{{droplet_nodes | from_json}}' > {{ playbook_dir }}/static/droplets_response.json"
+#   shell: >
+#     echo "{{droplet_nodes | from_json }}" > {{ playbook_dir }}/static/droplets_response.json
+#   register: write_droplet_response
+#   check_mode: no
+#   # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+#   changed_when: False
+#   tags:
+#     - lookup
+#     - debug
+#     - do_lookup
+#     - write_droplet_response
+
+- name: '/bin/cat {{ playbook_dir }}/static/droplets_response.json'
+  shell: "/bin/cat {{ playbook_dir }}/static/droplets_response.json"
+  register: droplets_response
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplets_response
+
+- name: "PRINT droplets_response"
+  debug:
+    msg: "{{ droplets_response.stdout }}"
+  when: droplets_response is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplets_response
+
+# - name: pause to see that everything is good
+#   pause: minutes=1
+# -----------------------------------
+
+- name: "PRINT droplet_nodes"
+  debug:
+    msg: "{{ droplet_nodes }}"
+  when: droplet_nodes is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplet_nodes
+
+- name: "CREATE servers_list_by_name fact with empty array"
+  set_fact: servers_list_by_name="[]"
+  check_mode: no
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - set_fact
+    - doctl_ssh_keys
+
+- name: "POPULATE servers_list_by_name fact"
+  set_fact: servers_list_by_name="{{servers_list_by_name}} + ['{{ item.value.name }}']"
+  when: item is defined and item.value.name is defined
+  check_mode: no
+  with_dict: "{{ avenger_servers }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - set_fact
+    - doctl_ssh_keys
+
+- name: 'PRINT servers_list_by_name'
+  debug:
+    msg: "{{ servers_list_by_name }}"
+  when: servers_list_by_name is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - servers_list_by_name
+
+# ********************************************************************************
+- name: "CREATE servers_list_by_ip fact with empty array"
+  set_fact: servers_list_by_ip="[]"
+  check_mode: no
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - set_fact
+    - doctl_ssh_keys
+
+- name: "POPULATE servers_list_by_ip fact"
+  set_fact: servers_list_by_ip="{{servers_list_by_ip}} + ['{{ item.value.name }}']"
+  when: item is defined and item.value.name is defined
+  check_mode: no
+  with_dict: "{{ avenger_servers }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - set_fact
+    - doctl_ssh_keys
+
+- name: 'PRINT servers_list_by_ip'
+  debug:
+    msg: "{{ servers_list_by_ip }}"
+  when: servers_list_by_ip is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - servers_list_by_ip
+
+# ********************************************************************************
+# EXAMPLE
+# TASK [PRINT servers_list_by_name] **********************************************
+# ok: [localhost] => {
+#     "msg": [
+#         "baxter"
+#     ]
+# }
+
+##############################################################
+# NOTE: OKAY THIS WORKS
+# jq -r '.msg.json.droplets[].networks.v4|map(select(.type=="public"))' < temp11
+# [
+#   {
+#     "gateway": "192.168.1.1",
+#     "ip_address": "192.168.1.2",
+#     "netmask": "255.255.224.0",
+#     "type": "public"
+#   }
+# ]
+# [
+#   {
+#     "gateway": "192.168.22.24",
+#     "ip_address": "192.168.1.3",
+#     "netmask": "255.255.240.0",
+#     "type": "public"
+#   }
+# ]
+
+# source: https://stackoverflow.com/questions/31895602/ansible-filter-a-list-by-its-attributes
+- name: "jq -r '[.msg.json.droplets[].networks.v4 | map(select(.type=='public'))]' < {{ playbook_dir }}/static/droplets_response.json"
+  shell: >
+    jq -r '[.msg.json.droplets[].networks.v4 | map(select(.type=="public"))]' < {{ playbook_dir }}/static/droplets_response.json
+  register: jq_only_public_instances
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - doctl_compute_firewall_list
+
+# NOTE: This ^ produces this here:
+#  |2.2.3|  using virtualenv: docker-swarm-marvel2  hyenatop in ~/dev/bossjones/docker-swarm-marvel
+# ± |feature-inital S:1 U:7 ?:9 ✗| → jq -r '[.msg.json.droplets[].networks.v4| map(select(.type=="public"))]' < /Users/user/dev/bossjones/docker-swarm-marvel/static/droplets_response.json
+# [
+#   [
+#     {
+#       "gateway": "192.168.1.1",
+#       "ip_address": "192.168.1.2",
+#       "netmask": "255.255.224.0",
+#       "type": "public"
+#     }
+#   ],
+#   [
+#     {
+#       "gateway": "192.168.22.24",
+#       "ip_address": "192.168.1.3",
+#       "netmask": "255.255.240.0",
+#       "type": "public"
+#     }
+#   ]
+# ]
+
+# source: https://stackoverflow.com/questions/31895602/ansible-filter-a-list-by-its-attributes
+- name: 'PRINT jq_only_public_instances.stdout BY ITEM'
+  debug:
+    msg: "{{ item.ip_address }}"
+  with_items: "{{ jq_only_public_instances.stdout }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - jq_only_public_instances
+
+# - name: pause to see that everything is good
+#   pause: minutes=1
+##############################################################
+
+#  |2.2.3|  using virtualenv: docker-swarm-marvel2  hyenatop in ~/dev/bossjones/docker-swarm-marvel
+# ± |feature-inital S:1 U:7 ?:9 ✗| → jq -r '[.msg.json.droplets[].networks.v4] | flatten' < /Users/user/dev/bossjones/docker-swarm-marvel/static/droplets_response.json
+# [
+#   {
+#     "gateway": "10.128.1.1",
+#     "ip_address": "192.168.1.2",
+#     "netmask": "255.255.0.0",
+#     "type": "private"
+#   },
+#   {
+#     "gateway": "192.168.1.1",
+#     "ip_address": "192.168.1.2",
+#     "netmask": "255.255.224.0",
+#     "type": "public"
+#   },
+#   {
+#     "gateway": "192.168.22.24",
+#     "ip_address": "192.168.1.3",
+#     "netmask": "255.255.240.0",
+#     "type": "public"
+#   }
+# ]
+
+- name: "jq -r '[.msg.json.droplets[].networks.v4] | flatten ' < {{ playbook_dir }}/static/droplets_response.json"
+  shell: >
+    jq -r '[.msg.json.droplets[].networks.v4] | flatten' < {{ playbook_dir }}/static/droplets_response.json
+  register: jq_type_and_ips
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - jq_type_and_ips
+
+- name: 'PRINT jq_type_and_ips'
+  debug:
+    msg: "{{ jq_type_and_ips }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - jq_type_and_ips
+
+- name: "CREATE fact_jq_type_and_ips fact with empty array"
+  set_fact: fact_jq_type_and_ips="[]"
+  check_mode: no
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - set_fact
+    - doctl_ssh_keys
+
+# TASK [PRINT fact_jq_type_and_ips] **********************************************
+# task path: /Users/user/dev/bossjones/docker-swarm-marvel/test.yml:343
+# ok: [localhost] => (item=192.168.1.3) => {
+#     "invocation": {
+#         "module_args": {
+#             "msg": "192.168.1.3"
+#         },
+#         "module_name": "debug"
+#     },
+#     "item": "192.168.1.3",
+#     "msg": "192.168.1.3"
+# }
+
+- name: "POPULATE fact_jq_type_and_ips fact"
+  set_fact: fact_jq_type_and_ips="{{fact_jq_type_and_ips}} + ['{{ item.ip_address | to_slash_32 }}']"
+  when: item.type|string == 'public'
+  check_mode: no
+  with_items:
+    - "{{ jq_type_and_ips.stdout | from_json }}"
+
+- name: 'PRINT fact_jq_type_and_ips'
+  debug:
+    msg: "{{ fact_jq_type_and_ips }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - fact_jq_type_and_ips
+
+  # NOTE: This above produces this ^
+  # TASK [PRINT fact_jq_type_and_ips] **********************************************
+  # task path: /Users/user/dev/bossjones/docker-swarm-marvel/test.yml:369
+  # ok: [localhost] => {
+  #     "msg": [
+  #         "192.168.1.2",
+  #         "192.168.1.3"
+  #     ]
+  # }
+
+- name: 'PRINT fact_jq_type_and_ips by ITEM'
+  debug:
+    msg: "{{ item }}"
+  with_items: "{{fact_jq_type_and_ips}}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - fact_jq_type_and_ips
+
+- name: 'doctl compute firewall list --output json'
+  shell: "doctl compute firewall list --output json"
+  register: doctl_compute_firewall_list
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - doctl_compute_firewall_list
+
+
+- name: 'PRINT {{ doctl_compute_firewall_list.stdout }}'
+  debug:
+    msg: "{{ doctl_compute_firewall_list.stdout }}"
+  when: doctl_compute_firewall_list is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - doctl_compute_firewall_list
+
+- name: "Set Fact: doctl_compute_firewall_list_to_json"
+  set_fact: doctl_compute_firewall_list_to_json="{{ doctl_compute_firewall_list.stdout | from_json }}"
+  changed_when: no
+
+- name: 'PRINT {{ doctl_compute_firewall_list_to_json }}'
+  debug:
+    msg: "{{ doctl_compute_firewall_list_to_json }}"
+  when: doctl_compute_firewall_list_to_json is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - doctl_compute_firewall_list_to_json
+
+# # ssh_keys | json_query('results[*].ssh_key') | selectattr('name', 'equalto', item.value.ssh_key_name) | map(attribute='id') | list
+
+- name: "CREATE firewall_info_list fact with empty array"
+  set_fact: firewall_info_list="[]"
+  check_mode: no
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - set_fact
+    - doctl_ssh_keys
+
+- name: "POPULATE firewall_info_list fact"
+  set_fact: firewall_info_list="{{firewall_info_list}} + ['{{ item }}']"
+  when: >
+    item is defined
+    and
+    item.name == do_firewall_name
+  check_mode: no
+  with_items:
+    - "{{ doctl_compute_firewall_list_to_json }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - set_fact
+    - doctl_ssh_keys
+
+- name: "PRINT firewall_info_list - BEFORE"
+  debug:
+    msg: "{{ firewall_info_list }}"
+  when: firewall_info_list is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - doctl_ssh_keys
+
+- name: Digital Ocean | Get firewalls
+  uri:
+    url: "https://api.digitalocean.com/v2/firewalls"
+    HEADER_Authorization: Bearer {{ lookup('env','DIGITALOCEAN_ACCESS_TOKEN') }}
+    status_code: 200
+  register: list_all_firewalls
+
+- name: "PRINT list_all_firewalls - BEFORE"
+  debug:
+    msg: "{{ list_all_firewalls }}"
+  when: list_all_firewalls is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - list_all_firewalls
+
+- name: "Add whitelist_ip_cidrs.ip_cidrs to fact_jq_type_and_ips"
+  set_fact: fact_jq_type_and_ips="{{fact_jq_type_and_ips}} + ['{{ item | to_slash_32 }}']"
+  with_items: "{{ whitelist_ip_cidrs.ip_cidrs }}"
+
+- name: "PRINT fact_jq_type_and_ips - After whitelist_ip_cidrs.ip_cidrs addition"
+  debug:
+    msg: "{{ fact_jq_type_and_ips }}"
+  when: fact_jq_type_and_ips is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - fact_jq_type_and_ips
+
+# NOTE: This produces this ^^
+# TASK [PRINT fact_jq_type_and_ips - After whitelist_ip_cidrs.ip_cidrs addition] *
+# task path: /Users/user/dev/bossjones/docker-swarm-marvel/test.yml:608
+# ok: [localhost] => {
+#     "msg": [
+#         "192.168.1.2/32",
+#         "192.168.1.3/32",
+#         "192.168.1.4/32",
+#         "192.168.1.5/32",
+#         "196.52.34.22/32"
+#     ]
+# }
+
+# - name: pause to see that everything is good
+#   pause: minutes=1
+
+- name: "CREATE FACT [firewall_inbound_rules_hash]"
+  set_fact:
+    firewall_inbound_rules_hash: |
+      {% set res = [] -%}
+      {%- for x in item -%}
+        {% set ignored = res.extend([{
+            'protocol': 'tcp',
+            'sources': {'addresses': [x|string]},
+            'ports': '1-65535'
+            }]) -%}
+      {%- endfor %}
+      {{ res }}
+  with_items:
+    # - "{{ whitelist_ip_cidrs|default([]) }}"
+    - "[{{ fact_jq_type_and_ips|default([]) }}]"
+  check_mode: no
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - set_fact
+
+# TASK [CREATE FACT [firewall_inbound_rules_hash]] *******************************
+# task path: /Users/user/dev/bossjones/docker-swarm-marvel/test.yml:634
+# ok: [localhost] => (item=[u'192.168.1.2/32', u'192.168.1.3/32', u'192.168.1.4/32', u'192.168.1.5/32', u'192.168.1.6/32']) => {
+#     "ansible_facts": {
+#         "firewall_inbound_rules_hash": [
+#             {
+#                 "ports": "1-65535",
+#                 "protocol": "tcp",
+#                 "sources": {
+#                     "addresses": [
+#                         "192.168.1.2/32"
+#                     ]
+#                 }
+#             },
+#             {
+#                 "ports": "1-65535",
+#                 "protocol": "tcp",
+#                 "sources": {
+#                     "addresses": [
+#                         "192.168.1.3/32"
+#                     ]
+#                 }
+#             },
+#             {
+#                 "ports": "1-65535",
+#                 "protocol": "tcp",
+#                 "sources": {
+#                     "addresses": [
+#                         "192.168.1.4/32"
+#                     ]
+#                 }
+#             },
+#             {
+#                 "ports": "1-65535",
+#                 "protocol": "tcp",
+#                 "sources": {
+#                     "addresses": [
+#                         "192.168.1.5/32"
+#                     ]
+#                 }
+#             },
+#             {
+#                 "ports": "1-65535",
+#                 "protocol": "tcp",
+#                 "sources": {
+#                     "addresses": [
+#                         "196.52.34.22/32"
+#                     ]
+#                 }
+#             }
+#         ]
+#     },
+#     "changed": false,
+#     "invocation": {
+#         "module_args": {
+#             "firewall_inbound_rules_hash": [
+#                 {
+#                     "ports": "1-65535",
+#                     "protocol": "tcp",
+#                     "sources": {
+#                         "addresses": [
+#                             "192.168.1.2/32"
+#                         ]
+#                     }
+#                 },
+#                 {
+#                     "ports": "1-65535",
+#                     "protocol": "tcp",
+#                     "sources": {
+#                         "addresses": [
+#                             "192.168.1.3/32"
+#                         ]
+#                     }
+#                 },
+#                 {
+#                     "ports": "1-65535",
+#                     "protocol": "tcp",
+#                     "sources": {
+#                         "addresses": [
+#                             "192.168.1.4/32"
+#                         ]
+#                     }
+#                 },
+#                 {
+#                     "ports": "1-65535",
+#                     "protocol": "tcp",
+#                     "sources": {
+#                         "addresses": [
+#                             "192.168.1.5/32"
+#                         ]
+#                     }
+#                 },
+#                 {
+#                     "ports": "1-65535",
+#                     "protocol": "tcp",
+#                     "sources": {
+#                         "addresses": [
+#                             "196.52.34.22/32"
+#                         ]
+#                     }
+#                 }
+#             ]
+#         },
+#         "module_name": "set_fact"
+#     },
+#     "item": [
+#         "192.168.1.2/32",
+#         "192.168.1.3/32",
+#         "192.168.1.4/32",
+#         "192.168.1.5/32",
+#         "196.52.34.22/32"
+#     ]
+# }
+
+- name: print firewall_inbound_rules_hash
+  debug:
+    msg: "{{ firewall_inbound_rules_hash }}"
+  when: firewall_inbound_rules_hash is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - set_fact
+
+# TASK [PRINT fact_jq_type_and_ips - After whitelist_ip_cidrs.ip_cidrs addition] *
+# task path: /Users/user/dev/bossjones/docker-swarm-marvel/test.yml:608
+# ok: [localhost] => {
+#     "msg": [
+#         "192.168.1.2/32",
+#         "192.168.1.3/32",
+#         "192.168.1.4/32",
+#         "192.168.1.5/32",
+#         "192.168.1.6/32"
+#     ]
+# }
+
+# NOTE: Using Ansible set_fact to create a dictionary from register results
+# source: https://stackoverflow.com/questions/35605603/using-ansible-set-fact-to-create-a-dictionary-from-register-results/35608380
+# {'ip_cidrs': {{fact_jq_type_and_ips}} }
+- name: Create fact whitelist_ip_cidrs_all as a dictonary with key 'ip_cidrs' and value list fact_jq_type_and_ips
+  set_fact:
+    whitelist_ip_cidrs_all: "{{ whitelist_ip_cidrs_all|default({}) | combine( {'ip_cidrs': fact_jq_type_and_ips} ) }}"
+
+- name: 'PRINT {{ whitelist_ip_cidrs_all | get_var_type }}'
+  debug:
+    msg: "{{ whitelist_ip_cidrs_all | get_var_type }}"
+  when: whitelist_ip_cidrs_all is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - whitelist_ip_cidrs_all
+
+- name: 'PRINT whitelist_ip_cidrs_all'
+  debug:
+    msg: "{{ whitelist_ip_cidrs_all }}"
+  when: whitelist_ip_cidrs_all is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - whitelist_ip_cidrs_all
+
+- name: 'PRINT do_firewall_name'
+  debug:
+    msg: "{{ do_firewall_name }}"
+  when: do_firewall_name is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - do_firewall_name
+
+- name: 'PRINT firewall_inbound_rules_hash'
+  debug:
+    msg: "{{ firewall_inbound_rules_hash }}"
+  when: firewall_inbound_rules_hash is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - firewall_inbound_rules_hash
+
+- name: 'PRINT firewall_outbound_rules_hash'
+  debug:
+    msg: "{{ firewall_outbound_rules_hash }}"
+  when: firewall_outbound_rules_hash is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - firewall_outbound_rules_hash
+
+# NOTE: Debugging purposes: https://stackoverflow.com/questions/31895602/ansible-filter-a-list-by-its-attributes
+# Test jinja to make sure it's rendering everything correctly
+- name: 'Test jinja to make sure its rendering everything correctly'
+  vars:
+    whitelist_ip_cidrs: "{{ whitelist_ip_cidrs_all }}"
+    do_firewall_name: "{{ do_firewall_name }}"
+    firewall_inbound_rules_hash: "{{ firewall_inbound_rules_hash }}"
+    firewall_outbound_rules_hash: "{{ firewall_outbound_rules_hash }}"
+  debug:
+    msg: "{% for fire_inbound in firewall_inbound_rules_hash %}\
+        {% set outer_loop = loop %}\
+        {\
+          'protocol': {{fire_inbound.protocol}},\
+          'ports': {{fire_inbound.ports}},\
+          'sources': {\
+          'addresses': [\
+          {{fire_inbound.sources.addresses[0]}}\
+          ],\
+        },\
+      }{% if not loop.last %},{% endif %}\
+      {% endfor %}"
+
+- name: create digitalocean firewall json payload
+  template: src={{role_path}}/templates/do_create_firewall_schema.json.j2 dest={{ playbook_dir }}/static/firewall_payload.json
+  vars:
+    whitelist_ip_cidrs: "{{ whitelist_ip_cidrs_all }}"
+    do_firewall_name: "{{ do_firewall_name }}"
+    firewall_inbound_rules_hash: "{{ firewall_inbound_rules_hash }}"
+    firewall_outbound_rules_hash: "{{ firewall_outbound_rules_hash }}"
+    matching_droplet_ids_only: "{{ matching_droplet_ids_only }}"
+    tags_to_use: "{{firewall_tag_name |string }}"
+  tags:
+    - docker
+    - all
+
+- name: '/bin/cat {{ playbook_dir }}/static/firewall_payload.json'
+  shell: "/bin/cat {{ playbook_dir }}/static/firewall_payload.json"
+  register: firewall_payload
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - firewall_payload
+
+- name: "Set Fact: firewall_payload_to_json"
+  set_fact: firewall_payload_to_json="{{ firewall_payload.stdout }}"
+  changed_when: no
+
+- name: 'PRINT {{ firewall_payload_to_json }}'
+  debug:
+    msg: "{{ firewall_payload_to_json }}"
+  when: firewall_payload_to_json is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - firewall_payload_to_json
+

@@ -1,0 +1,62 @@
+---
+- name: clone bossjones-dotfile
+  git: repo=https://github.com/bossjones/bossjones-dotfiles.git
+       dest="{{virtualenv_vars.DEV_DIR}}/bossjones-dotfiles"
+       update=no
+       depth=1
+  become: "{{base_vars.USER}}"
+  become_user: "{{base_vars.USER}}"
+
+
+- name: clone jessfraz-dotfiles
+  git: repo=https://github.com/jessfraz/dotfiles.git
+       dest="{{virtualenv_vars.DEV_DIR}}/jessfraz-dotfiles"
+       update=no
+       depth=1
+  become: "{{base_vars.USER}}"
+  become_user: "{{base_vars.USER}}"
+
+- name: clone jessfraz-dockerfiles
+  git: repo=https://github.com/jessfraz/dockerfiles.git
+       dest="{{virtualenv_vars.DEV_DIR}}/jessfraz-dockerfiles"
+       update=yes
+       depth=1
+  become: "{{base_vars.USER}}"
+  become_user: "{{base_vars.USER}}"
+  changed_when: false
+  ignore_errors: yes
+  failed_when: false
+  check_mode: no
+
+- name: clone powerline-fonts
+  git: repo=https://github.com/powerline/fonts.git
+       dest="{{virtualenv_vars.DEV_DIR}}/powerline-fonts"
+       update=yes
+       depth=1
+  become: "{{base_vars.USER}}"
+  become_user: "{{base_vars.USER}}"
+  changed_when: false
+  ignore_errors: yes
+  failed_when: false
+  check_mode: no
+
+# TODO: do these steps in ansible
+# https://powerline.readthedocs.io/en/master/installation/linux.html
+# https://powerline.readthedocs.io/en/master/installation.html
+# psutil socat hglib pygit2 bzr pyuv i3-ipc xrandr
+
+# sudo pip install psutil pyuv
+# dnf install bzr socat python*-hglib i3-ipc
+
+
+- name: clone tmuxinator
+  git: repo=https://github.com/tmuxinator/tmuxinator.git
+       dest="{{virtualenv_vars.DEV_DIR}}/tmuxinator"
+       update=yes
+       depth=1
+  become: "{{base_vars.USER}}"
+  become_user: "{{base_vars.USER}}"
+  changed_when: false
+  ignore_errors: yes
+  failed_when: false
+  check_mode: no

@@ -1,0 +1,69 @@
+---
+- name: Create ~user/dev and ~user/dev folders
+  file: path="{{virtualenv_vars.DEV_DIR}}"
+        state=directory
+        mode=0755
+        recurse=yes
+        owner="{{base_vars.USER}}"
+        group="{{base_vars.USER}}"
+
+- name: Create ~user/.bin folders
+  file: path="/home/{{base_vars.USER}}/.bin"
+        state=directory
+        mode=0755
+        recurse=yes
+        owner="{{base_vars.USER}}"
+        group="{{base_vars.USER}}"
+
+
+- name: configure bash_profile
+  template: src="home/{{base_vars.USER}}/bash_profile.j2"
+            dest="/home/{{base_vars.USER}}/.bash_profile"
+            owner="{{base_vars.USER}}"
+            group="{{base_vars.USER}}"
+            mode=0644
+            backup=yes
+  tags:
+  - bash_profile
+  - configuration
+
+- name: configure bashrc
+  template: src="home/{{base_vars.USER}}/bashrc.j2"
+            dest="/home/{{base_vars.USER}}/.bashrc"
+            owner="{{base_vars.USER}}"
+            group="{{base_vars.USER}}"
+            mode=0644
+            backup=yes
+  tags:
+  - bashrc
+  - configuration
+
+- name: configure .super_aliases
+  template: src="home/{{base_vars.USER}}/super_aliases.j2"
+            dest="/home/{{base_vars.USER}}/.super_aliases"
+            owner="{{base_vars.USER}}"
+            group="{{base_vars.USER}}"
+            mode=0644
+            backup=yes
+  tags:
+  - super_aliases
+  - configuration
+
+# https://fedoramagazine.org/add-power-terminal-powerline/
+# sudo dnf install powerline
+
+# Powerline Plain
+# font symbols font
+#
+####################################################
+
+- name: "~/.bin local bin"
+  lineinfile:
+    dest: "/home/{{base_vars.USER}}/.bash_profile"
+    line: 'export PATH="~/.bin:$PATH"'
+    regexp: '^export PATH="~/.bin:$PATH"'
+
+- name: dnf installpowerline
+  dnf: name={{item}} state=present
+  with_items:
+    - powerline

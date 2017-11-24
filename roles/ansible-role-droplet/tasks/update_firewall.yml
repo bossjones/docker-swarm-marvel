@@ -1,0 +1,97 @@
+---
+
+- name: Digital Ocean | Get firewalls
+  uri:
+    url: "https://api.digitalocean.com/v2/firewalls"
+    HEADER_Authorization: Bearer {{ lookup('env','DIGITALOCEAN_ACCESS_TOKEN') }}
+    status_code: 200
+  register: list_all_firewalls_response
+
+- name: 'Set {{ playbook_dir }}/static/get_firewalls_response.json'
+  template: src={{role_path}}/templates/generic_json.json.j2 dest={{ playbook_dir }}/static/get_firewalls_response.json
+  vars:
+    # NOTE: This gets rid of unicode characters inside of the json doc
+    generic_json: "{{ list_all_firewalls_response | to_nice_json }}"
+  delegate_to: localhost
+
+- name: '/bin/cat {{ playbook_dir }}/static/get_firewalls_response.json'
+  shell: "/bin/cat {{ playbook_dir }}/static/get_firewalls_response.json"
+  register: get_firewalls_response
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - get_firewalls_response
+
+- name: "PRINT get_firewalls_response"
+  debug:
+    msg: "{{ get_firewalls_response.stdout }}"
+  when: get_firewalls_response is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - get_firewalls_response
+
+#  |2.2.3|  using virtualenv: docker-swarm-marvel2  hyenatop in ~/dev/bossjones/docker-swarm-marvel
+# ± |feature-inital U:6 ?:3 ✗| → jq '.msg.json.firewalls | map(select(.name=="ssh-hyena-apt"))| .[].id' < ./static/get_firewalls_response.json
+# "53839e97-1d1e-48c7-9939-05320ba7e165"
+
+- name: "jq -r '.msg.json.firewalls | map(select(.name==\"{{do_firewall_name}}\"))| .[].id' < {{ playbook_dir }}/static/get_firewalls_response.json"
+  shell: >
+    jq -r '.msg.json.firewalls | map(select(.name=="{{do_firewall_name}}"))| .[].id' < {{ playbook_dir }}/static/get_firewalls_response.json
+  register: existing_firewall_id
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - existing_firewall_id
+
+- name: 'PRINT existing_firewall_id.stdout'
+  debug:
+    msg: "{{ existing_firewall_id.stdout }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - existing_firewall_id
+
+- name: "Set Fact: fact_existing_firewall_id"
+  set_fact: fact_existing_firewall_id="{{ existing_firewall_id.stdout }}"
+  changed_when: no
+
+- name: 'PRINT fact_existing_firewall_id'
+  debug:
+    msg: "{{ fact_existing_firewall_id }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - existing_firewall_id
+
+# TODO: Skipping currently, cause it just doesn't work
+- name: Digital Ocean | update firewall
+  uri:
+    url: "https://api.digitalocean.com/v2/firewalls/{{fact_existing_firewall_id}}"
+    HEADER_Authorization: Bearer {{ lookup('env','DIGITALOCEAN_ACCESS_TOKEN') }}
+    status_code: 200,201
+    return_content: yes
+    body_format: json
+    method: PUT
+    body: "{{ lookup('file', playbook_dir + '/static/firewall_payload.json') }}"
+  register: update_firewall_reponse
+
+- name: 'PRINT update_firewall_reponse'
+  debug:
+    msg: "{{ update_firewall_reponse }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - existing_firewall_id

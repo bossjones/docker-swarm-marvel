@@ -1,0 +1,56 @@
+---
+
+- name: install some small, awesome packages to boost your life
+  dnf: name={{item}} state=latest
+  with_items:
+    - atop
+    - bash
+    - bash-completion
+    - bcc-tools
+    - bridge-utils
+    - ca-certificates
+    - collectl
+    - curl
+    - dstat
+    - file
+    - file
+    - gettext
+    - git
+    - glibc-langpack-en.x86_64
+    - hdparm
+    - htop
+    - iftop
+    - iotop
+    - iperf
+    - iperf3
+    - iproute
+    - iproute
+    - iputils
+    - lsof
+    - ltrace
+    - ncurses
+    - net-tools
+    - net-tools
+    - ngrep
+    - nmap
+    - nmon
+    - perf
+    - procps-ng
+    - psmisc
+    - pv
+    - python-devel
+    - qperf
+    - redhat-rpm-config
+    - socat
+    - sos
+    - speedtest-cli
+    - sslscan
+    - strace
+    - sysstat
+    - tar
+    - tcpdump
+    - tcpdump
+    - tree
+    - vim
+    - wget
+    - python3-devel

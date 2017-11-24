@@ -1,0 +1,7 @@
+---
+# source: https://fedoramagazine.org/add-power-terminal-powerline/
+- name: dnf install vim-plugin-powerline
+  dnf: name={{item}} state=present
+  with_items:
+    - vim-plugin-powerline
+# sudo dnf install vim-plugin-powerline

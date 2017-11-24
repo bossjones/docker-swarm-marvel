@@ -1,0 +1,28 @@
+[run]
+branch = True
+source = app
+omit =
+    */pyshared/*
+    */python?.?/*
+    */site-packages/nose/*
+    */test/*
+    */site-packages/*
+
+[report]
+# Regexes for lines to exclude from consideration
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: no cover
+
+    # Don't complain about missing debug-only code:
+    def __repr__
+
+    # Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+    assert False
+
+    if __name__ == .__main__.:
+
+# [html]
+# directory = coverage_html_report

@@ -1,0 +1,43 @@
+---
+#Installing Packages
+- name: remove | vim-enhanced
+  become: yes
+  dnf:
+    name: "{{ item }}"
+    state: absent
+  ignore_errors: true
+  with_items:
+    - vim-enhanced
+
+- name: install | installing packages
+  become: yes
+  dnf:
+    name: "{{ item }}"
+    state: latest
+  ignore_errors: true
+  with_items:
+    - tcl
+    - vim-enhanced
+    - lm_sensors
+    - curl
+    - libcurl*
+
+- name: install | copy template to /etc
+  become: yes
+  template:
+    dest: /etc/motd.tcl
+    group: root
+    owner: root
+    mode: 0755
+    src: motd.tcl.j2
+
+- name: install | add line with /etc/motd.tcl  to profile
+  become: yes
+  lineinfile:
+    dest: /etc/profile
+    line: "/etc/motd.tcl"
+
+- name: install | remove defaut motd
+  become: yes
+  shell: mv /etc/motd /etc/motd.backup.orig
+  ignore_errors: yes

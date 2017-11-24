@@ -1,0 +1,44 @@
+---
+
+  - name: Get Droplet IP.
+    shell: doctl compute droplet list | awk '$2 == "{{ digitalocean.do_droplet_name }}" { print $0 }' | awk '{ print $3 }'
+    register: droplet_ip
+
+
+  - set_fact:
+     new_droplet_ip: "{{ droplet_ip.stdout }}"
+
+  - debug: msg="{{ new_droplet_ip }}"
+
+
+  - name: Add Droplet IP to hosts file
+    shell: |
+      echo [zinglax] > ./inventory/zinglax
+      echo {{ droplet_ip.stdout }} >> ./inventory/zinglax
+  - name: Get Droplet ID.
+    shell: doctl compute droplet list | awk '$2 == "{{ digitalocean.do_droplet_name }}" { print $0 }' | awk '{ print $1 }'
+    register: droplet_id
+
+
+  - name: Add Domain
+    environment:
+      domain: "{{ digitalocean.do_domain_name }}"
+      ip: "{{ droplet_ip.stdout }}"
+    script: ./files/add_domain.sh
+    register: rm_d
+  - debug: msg="{{ rm_d.stdout }}"
+
+
+  - name: Configure A Record "*.{{ digitalocean.do_domain_name }}"
+    shell: |
+      out=`doctl compute domain records list "{{ digitalocean.do_domain_name }}" | awk '$3 == "*" { print $2 }'`
+      if [ "$out" == "A" ]
+      then
+        echo There is already a wild card A record set to \*."{{ digitalocean.do_domain_name }}"
+      else
+        doctl compute domain records create "{{ digitalocean.do_domain_name }}" --record-type A --record-name "*" --record-data "{{ droplet_ip.stdout }}"
+      fi
+    args:
+      executable: /bin/bash
+    register: record
+  - debug: msg="{{ record.stdout }}"

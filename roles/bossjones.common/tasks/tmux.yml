@@ -1,0 +1,47 @@
+---
+- name: ensure tmux is installed
+  package:
+    name: "{{ item }}"
+  with_items:
+    - tmux
+
+- name: ensure powerline for tmux is installed
+  package:
+    name: tmux-powerline
+  when: tmux_powerline and ansible_os_family == 'RedHat'
+
+- name: get version of tmux
+  shell: "tmux -V | cut -d' ' -f2"
+  register: tmux_version
+  changed_when: false
+
+- name: retrieve the list of home directories
+  command: ls -1 /home
+  register: home_dirs
+  changed_when: false
+
+- name: ensure tmux plugin directory exists
+  file:
+    path: "/home/{{ item }}/.tmux/plugins"
+    state: directory
+    recurse: yes
+  become: yes
+  become_user: "{{ item }}"
+  when: item in home_dirs.stdout_lines
+  with_items: "{{ tmux_users }}"
+
+- name: ensure tmux plugin manager is installed
+  git:
+    repo: https://github.com/tmux-plugins/tpm
+    dest: "/home/{{ item }}/.tmux/plugins/tpm"
+    version: master
+  become: yes
+  become_user: "{{ item }}"
+  when: item in home_dirs.stdout_lines
+  with_items: "{{ tmux_users }}"
+
+
+# $ cd
+# $ git clone https://github.com/gpakosz/.tmux.git
+# $ ln -s -f .tmux/.tmux.conf
+# $ cp .tmux/.tmux.conf.local .

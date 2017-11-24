@@ -1,0 +1,98 @@
+---
+firewall_allowed_tcp_ports:
+  - "22"
+
+docker_selinux: disabled
+
+fail2ban_jails: [sshd, postfix, dovecot]
+
+
+swarm_ansible_user: pi
+
+
+groups_to_create:
+  - name: pi
+    gid: 1000
+users:
+  - name: pi
+    username: pi
+    uid: 1000
+    groups: [wheel, systemd-journal, adm]
+    password: pi
+    shell: /bin/bash
+    profile: |
+      alias ll='ls -lah'
+      alias cp='cp -iv'
+    ssh_key:
+      - "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key"
+
+
+base_vars:
+  PYTHON_VERSION_MAJOR: '3'
+  PYTHON_VERSION: '3.5'
+  GSTREAMER: '1.0'
+  USER: 'pi'
+  USER_HOME: '/home/pi'
+
+virtualenv_vars:
+  DEV_DIR: "{{ base_vars.USER_HOME }}/dev"
+  VIRT_ROOT: "{{ base_vars.USER_HOME }}/.virtualenvs"
+  WORKON_HOME: "{{ base_vars.USER_HOME }}/.virtualenvs"
+  PROJECT_HOME: "{{ base_vars.USER_HOME }}/dev"
+  VIRTUALENVWRAPPER_PYTHON: "/usr/bin/python3"
+  VIRTUALENVWRAPPER_VIRTUALENV: "/usr/bin/virtualenv"
+  VIRTUALENVWRAPPER_SCRIPT: "/usr/bin/virtualenvwrapper.sh"
+  PYTHONSTARTUP: "$HOME/.pythonrc"
+  PIP_DOWNLOAD_CACHE: "$HOME/.pip/cache"
+
+
+rbenv:
+  env: user
+  version: v1.1.0
+  default_ruby: 2.2.3
+  rubies:
+  - version: 2.2.3
+powerline_default_top_theme: powerline
+powerline_shell_vcs_branch: yes
+powerline_users:
+  - pi
+
+rbenv_users:
+  - pi
+
+rbenv_repo: "https://github.com/rbenv/rbenv.git"
+
+rbenv_plugins:
+  - { name: "rbenv-vars",         repo: "https://github.com/rbenv/rbenv-vars.git",         version: "v1.2.0" }
+  - { name: "ruby-build",         repo: "https://github.com/rbenv/ruby-build.git",         version: "master" }
+  - { name: "rbenv-default-gems", repo: "https://github.com/rbenv/rbenv-default-gems.git", version: "ead67889c91c53ad967f85f5a89d986fdb98f6fb" }
+  - { name: "rbenv-installer",    repo: "https://github.com/rbenv/rbenv-installer.git",    version: "bc21e7055dcc8f5f9bc66ce0c78cc9ae0c28cd7a" }
+  - { name: "rbenv-update",       repo: "https://github.com/rkh/rbenv-update.git",         version: "1961fa180280bb50b64cbbffe6a5df7cf70f5e50" }
+  - { name: "rbenv-whatis",       repo: "https://github.com/rkh/rbenv-whatis.git",         version: "v1.0.0" }
+  - { name: "rbenv-use",          repo: "https://github.com/rkh/rbenv-use.git",            version: "v1.0.0" }
+
+rbenv_root: "{% if rbenv.env == 'system' %}/usr/local/rbenv{% else %}~/.rbenv{% endif %}"
+
+nvm_repo: "git://github.com/creationix/nvm.git"
+nvm_root: "{{ base_vars.USER_HOME }}/.nvm"
+nvm_env: user
+nvm_version: v0.33.1
+nvm_default_node_version: stable
+nvm_node_versions:
+  - stable
+nvm_global_packages:
+  - vtop
+  - whereami
+  - figlet-cli
+  - get-port-cli
+  - getmac
+  - mediumcli
+  - speed-test
+  - spoof
+  - tldr
+  - wireless-tools
+  - yaml-lint
+  - pathogen-pm
+  - manga-scraper
+nvm_users:
+  - "{{ base_vars.USER }}"

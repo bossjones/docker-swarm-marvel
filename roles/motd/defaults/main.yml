@@ -1,0 +1,6 @@
+---
+
+motd: |
+    This server is configured via Ansible.
+    Do not change configuration settings directly.
+

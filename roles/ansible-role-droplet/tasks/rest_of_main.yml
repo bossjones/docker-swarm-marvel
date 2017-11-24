@@ -1,0 +1,160 @@
+---
+- name: 'PRINT: droplet_id if it has been defined'
+  debug:
+    msg: "ID is {{ droplet_id }}"
+  ignore_errors: yes
+  when: droplet_id is defined
+
+- name: "Ensure droplet exists {{ item.value.name }}"
+  digital_ocean:
+    state: "{{ item.value.state|default('present') }}"
+    command: "{{ item.value.command }}"
+    name: "{{ item.value.name }}"
+    # FIXME
+    # unique_name: yes
+    id: "{{ item.value.droplet_id |default(omit) }}"
+    size_id: "{{ item.value.size_id|default('512mb') }}"
+    region_id: "{{ item.value.region_id|default('nyc3') }}"
+    image_id: "{{ item.value.image_id }}"
+    ssh_key_ids: "{{ fact_jq_ssh_key_ids_only }}"
+    wait_timeout: "{{ item.value.wait_timeout|default(500)|int }}"
+  register: ensure_droplet
+  with_dict: "{{ avenger_servers }}"
+
+- name: 'PRINT: ensure_droplet'
+  debug:
+    msg: "{{ensure_droplet}}"
+
+- name: 'Set {{ playbook_dir }}/static/droplet_creation_response.json'
+  template: src={{role_path}}/templates/generic_json.json.j2 dest={{ playbook_dir }}/static/droplet_creation_response.json
+  vars:
+    # NOTE: This gets rid of unicode characters inside of the json doc
+    generic_json: "{{ ensure_droplet.results | to_nice_json }}"
+  delegate_to: localhost
+
+- name: '/bin/cat {{ playbook_dir }}/static/droplet_creation_response.json'
+  shell: "/bin/cat {{ playbook_dir }}/static/droplet_creation_response.json"
+  register: droplet_creation_response
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplet_creation_response
+
+- name: "PRINT droplet_creation_response"
+  debug:
+    msg: "{{ droplet_creation_response.stdout }}"
+  when: droplet_creation_response is defined
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - droplet_creation_response
+
+- name: wait 1 minute before creating droplet.
+  pause: minutes=1
+  tags:
+    - pause
+
+#  |2.2.3|  using virtualenv: docker-swarm-marvel2  hyenatop in ~/dev/bossjones/docker-swarm-marvel
+# ± |feature-inital U:6 ?:1 ✗| → jq -r '[.msg[].droplet| {name:.name, id:.id, ip_address:.ip_address}]' < ./static/droplet_creation_response.json
+# [
+#   {
+#     "name": "baxter",
+#     "id": 67316638,
+#     "ip_address": "45.55.147.156"
+#   }
+# ]
+
+# FIXME: fix this
+- name: "jq -r '[.msg[].droplet| {name:.name, id:.id, ip_address:.ip_address}]' < {{ playbook_dir }}/static/droplet_creation_response.json"
+  shell: >
+    jq -r '.msg[].droplet| {name:.name, id:.id, ip_address:.ip_address}' < {{ playbook_dir }}/static/droplet_creation_response.json
+  register: new_droplet_name_ip_and_id
+  check_mode: no
+  # Since this is just a command that looks up files on your system, don't mark it as a change everytime we run this
+  changed_when: False
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - new_droplet_name_ip_and_id
+
+# source: https://stackoverflow.com/questions/31895602/ansible-filter-a-list-by-its-attributes
+- name: 'PRINT new_droplet_name_ip_and_id.stdout BY ITEM'
+  debug:
+    msg: "{{ item }}"
+  with_items: "{{ new_droplet_name_ip_and_id.stdout }}"
+  tags:
+    - lookup
+    - debug
+    - do_lookup
+    - new_droplet_name_ip_and_id
+
+# NOTE: Using Ansible set_fact to create a dictionary from register results
+# source: https://stackoverflow.com/questions/35605603/using-ansible-set-fact-to-create-a-dictionary-from-register-results/35608380
+# {'ip_cidrs': {{fact_jq_type_and_ips}} }
+- name: Create fact fact_new_droplet_name_ip_and_id as a dictonary with key 'ip_cidrs' and value list fact_jq_type_and_ips
+  when: new_droplet_name_ip_and_id is defined
+  set_fact:
+    fact_new_droplet_name_ip_and_id: "[{{new_droplet_name_ip_and_id.stdout}}]"
+
+- name: 'PRINT: IP is {{ fact_new_droplet_name_ip_and_id }}'
+  when: fact_new_droplet_name_ip_and_id is defined
+  debug:
+    msg: "IP is {{ fact_new_droplet_name_ip_and_id }}"
+
+# - name: 'PRINT: ip_address: { item.ip_address }}'
+#   with_items: "{{fact_new_droplet_name_ip_and_id}}"
+#   when: fact_new_droplet_name_ip_and_id is defined
+#   debug:
+#     msg: "ip_address: {{ item.ip_address }}"
+
+##########################################################################################
+# FIXME: Run this manually ( ansible is failing on stupid things, not worth the time )
+##########################################################################################
+# ??? write to inventory
+# - local_action:
+#     with_items: "{{fact_new_droplet_name_ip_and_id}}"
+#     module: blockinfile
+#     create: yes
+#     mode: 0666
+#     path: "{{ playbook_dir }}/{{ inventory_to_update }}"
+#     marker: "# {mark} {{ item.name }}"
+#     content: |
+#       [{{ droplet_groups }}]
+#       {{ item.name }} ansible_host={{ item.ip_address }} droplet_id={{ item.id }} ansible_ssh_user=root ansible_python_interpreter=/usr/bin/python
+#
+# - local_action:
+#     module: add_host
+#     with_items: "{{fact_new_droplet_name_ip_and_id}}"
+#     hostname: "{{ item.ip_address }}"
+#     groups: "{{ droplet_groups }}"
+#     ansible_ssh_user: root
+#     # ansible_ssh_private_key_file: "{{ '~/.ssh/id_rsa' | expanduser }}"
+#     ansible_host: "{{ item.ip_address }}"
+#     ansible_ssh_host: "{{ item.ip_address }}"
+#     ansible_python_interpreter: python
+
+- name: Add new host to our inventory.
+  with_items: "{{fact_new_droplet_name_ip_and_id}}"
+  add_host:
+    name: "{{ item.ip_address }}"
+    groups: "{{ droplet_groups }}"
+    ansible_python_interpreter: python3
+  when: item.ip_address is defined
+
+##########################################################################################
+# - local_action:
+#     module: gcdns_record
+#     credentials_file: nobreach-855249fcb65a.json
+#     record: "{{ name }}"
+#     zone: "nobreach.se"
+#     type: A
+#     overwrite: true
+#     record_data:
+#       - "{{ droplet.droplet.ip_address }}"
+##########################################################################################
